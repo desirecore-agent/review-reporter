@@ -1,0 +1,151 @@
+{
+  "$schema": "http://desirecore/schemas/agent.json",
+  "version": "1.0.0",
+  "name": "合同复核出报告官",
+  "description": "合同审查流水线终环与最后一道防线。基于原文与结构化事实独立重判，不读前序推理；五维加权评分与五档阈值，强制结论四元组，法务四类动作触发 Human Gate 退回重审。",
+  "author": "DesireCore",
+  "avatar": {
+    "char": "核",
+    "color": "purple"
+  },
+  "llm": {
+    "routingMode": "smart",
+    "smart": {
+      "profile": {
+        "tier": "flagship",
+        "requiredCapabilities": [
+          "reasoning",
+          "tool_use",
+          "long_context"
+        ],
+        "reasoning": "high"
+      }
+    },
+    "maxRetryDelayMs": 32000
+  },
+  "capabilities": [
+    "contract-review",
+    "independent-review",
+    "review-scoring",
+    "risk-weighting",
+    "human-gate-gatekeeping",
+    "evidence-chain-audit",
+    "version-diff-risk-direction",
+    "report-composition",
+    "action-plan-generation"
+  ],
+  "trigger_patterns": [
+    "复核",
+    "独立复核",
+    "交叉复核",
+    "审查报告",
+    "合同报告",
+    "评分",
+    "风险评分",
+    "打分",
+    "阈值",
+    "行动清单",
+    "签核",
+    "签核点",
+    "法务确认",
+    "版本对比",
+    "风险方向",
+    "结论四元组",
+    "证据索引",
+    "review",
+    "independent review",
+    "cross-check",
+    "contract report",
+    "risk scoring",
+    "scorecard",
+    "human gate",
+    "sign-off",
+    "action plan",
+    "version comparison",
+    "evidence index"
+  ],
+  "accepts_handoff": false,
+  "accepts_messages": true,
+  "max_concurrent_sessions": 2,
+  "command_authority": {
+    "enabled": true,
+    "allowed_targets": [
+      "contract-review-lead",
+      "contract-intake",
+      "clause-extractor",
+      "risk-scanner",
+      "jurisdiction-auditor"
+    ]
+  },
+  "default_enabled": {
+    "skills": [
+      "review-scoring",
+      "report-composition"
+    ],
+    "tools": []
+  },
+  "tool_permissions": {
+    "allowed": [
+      "Read",
+      "Ls",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Skill",
+      "MathCalc",
+      "GenerateUUID",
+      "UnderstandImage",
+      "AskUserQuestion",
+      "Delegate",
+      "SendMessage",
+      "FileDigest"
+    ],
+    "denied": [
+      "RecallConversation",
+      "RecallWorkContext",
+      "ManageConversation",
+      "ManageContext",
+      "CompactSession",
+      "InspectRuns",
+      "TeamArtifact",
+      "spawn_agent",
+      "Bash",
+      "PowerShell",
+      "TerminalControl",
+      "HttpRequest",
+      "WebFetch",
+      "WebSearch",
+      "ComputeCredential",
+      "ControlDesireCoreGui",
+      "BrowserTakeover",
+      "ExportDocument",
+      "GenerateImage",
+      "ManageAgent",
+      "ManageTeam"
+    ]
+  },
+  "network_security": {
+    "enableSsrfProtection": true
+  },
+  "file_security": {
+    "restrictToWorkDirs": true
+  },
+  "compute_credentials": {
+    "allowed_providers": []
+  },
+  "tools": {
+    "ask_user_question": {
+      "wait_mode": "always_wait"
+    }
+  },
+  "env": {
+    "enabled": true,
+    "includeWeekday": true,
+    "includeLocalTime": true,
+    "includeSessionStart": true,
+    "includeOs": false,
+    "includeRuntime": false,
+    "includeManagedRuntimes": false
+  }
+}
