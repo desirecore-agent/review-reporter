@@ -70,11 +70,11 @@
   "command_authority": {
     "enabled": true,
     "allowed_targets": [
-      "contract-review-lead",
-      "contract-intake",
-      "clause-extractor",
-      "risk-scanner",
-      "jurisdiction-auditor"
+      "he-tong-shen-cha-tong-chou-guan",
+      "he-tong-shu-ru-zhi-li-guan",
+      "tiao-kuan-jie-gou-hua-guan",
+      "he-tong-feng-xian-shi-bie-guan",
+      "fa-yu-he-gui-guan"
     ]
   },
   "default_enabled": {
