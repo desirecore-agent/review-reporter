@@ -9,7 +9,7 @@ description: >-
   Use to render the final contract review report: three-phase delivery, clause-level findings with
   mandatory four-part conclusions, an evidence index traceable to page and quote, a prioritized
   action list, human sign-off gates, and an independence attestation.
-version: 1.0.0
+version: 1.0.1
 type: procedural
 risk_level: low
 status: enabled
@@ -29,8 +29,8 @@ requires:
     - MathCalc
 metadata:
   author: DesireCore
-  version: 1.0.0
-  updated_at: '2026-08-31'
+  version: 1.0.1
+  updated_at: '2026-09-07'
 ---
 
 # 复核报告排版与证据索引
@@ -38,6 +38,8 @@ metadata:
 ## 何时使用
 
 `review-scoring` 出具 `scorecard.yaml` 之后执行，作为固定工具链**第 7 步的后半**。
+
+进入本技能前，必须先用 `Read` 完整回读评分回执，并确认 `review-scoring` 的产物完整性闸门已通过。若回读发现 YAML 缩进、引号或括号不闭合，停止报告排版并回报 `REJECT-SCORECARD-YAML`；不得在报告阶段自行猜测、修补或掩盖评分回执。
 本技能只负责**渲染与索引**，不新增结论、不改分数、不调整严重度。
 
 ## 不可协商的前提

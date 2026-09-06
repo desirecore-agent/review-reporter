@@ -10,7 +10,7 @@ description: >-
   Use for independent cross-review and weighted scoring of a contract review: sanitizes upstream
   input, re-derives every claim from the source document, computes the five-dimension weighted
   score with fixed deduction tables, maps to the five action tiers, and raises human sign-off gates.
-version: 1.0.0
+version: 1.0.1
 type: procedural
 risk_level: low
 status: enabled
@@ -32,8 +32,8 @@ requires:
     - AskUserQuestion
 metadata:
   author: DesireCore
-  version: 1.0.0
-  updated_at: '2026-08-31'
+  version: 1.0.1
+  updated_at: '2026-09-07'
 ---
 
 # 独立复核与加权评分
@@ -544,6 +544,15 @@ rerun_request:
 落盘到 `<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/scorecard.yaml`，
 旧版本保留不覆盖。
 
+### 产物完整性闸门（必须在任何 handoff 之前执行）
+
+`scorecard.yaml` 是审计事实源，写坏一个字符就等于没有回执。写入后必须立刻用 `Read` 从磁盘重新读取**完整文件**，再逐项检查：
+
+1. 顶层 `review_scorecard`、`object`、`dimensions`、`findings`、`actions`、`human_gates`、`release_decision`、`pending_settlement`、`reverify_ledger`、`unverified_ledger`、`divergence_ledger` 与 `independence_attestation` 均存在；`release_decision` 必须是允许值。
+2. 对 `reverify_ledger`、`unverified_ledger`、`divergence_ledger`、`human_gates` 和 `pending_settlement` 一律使用**块映射**（每个字段独占一行），禁止嵌套 inline map。证据中的 `{`、`}`、`[`、`]`、`:`、换行或前导 `#` 必须使用单引号包住；不要在行尾重复 `}` 或 `]`。
+3. 从头到尾检查每个列表项的缩进、引号和括号配对；发现任意歧义、重复闭合符或无法确定的 YAML 结构，立即用块映射重写后再次 `Read`，不得继续排版或回报。
+4. 只有完整回读通过后，才允许执行 R7 handoff；失败时只回报 `REJECT-SCORECARD-YAML`、文件路径和需重写的行号，不得发送半成品报告。
+
 ```yaml
 review_scorecard:
   review_id: REVIEW-20260331-3c81ab77
@@ -615,6 +624,12 @@ review_scorecard:
 ---
 
 ## 自检清单（出回执前逐条确认）
+
+**产物可回放性**
+
+- [ ] `scorecard.yaml` 写后已完整 `Read` 回读；所有必需顶层字段存在
+- [ ] 关键 ledger/list 项使用块映射，证据字符串已引用，括号与缩进闭合；没有尾部重复 `}`/`]`
+- [ ] 回读失败时已用 `REJECT-SCORECARD-YAML` 停止 handoff，而不是继续生成报告
 
 **独立性**
 
