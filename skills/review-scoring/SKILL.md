@@ -10,7 +10,7 @@ description: >-
   Use for independent cross-review and weighted scoring of a contract review: sanitizes upstream
   input, re-derives every claim from the source document, computes the five-dimension weighted
   score with fixed deduction tables, maps to the five action tiers, and raises human sign-off gates.
-version: 1.0.1
+version: 1.0.2
 type: procedural
 risk_level: low
 status: enabled
@@ -32,7 +32,7 @@ requires:
     - AskUserQuestion
 metadata:
   author: DesireCore
-  version: 1.0.1
+  version: 1.0.2
   updated_at: '2026-09-07'
 ---
 
@@ -541,12 +541,14 @@ rerun_request:
 
 ## R7 出具评分回执
 
-落盘到 `<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/scorecard.yaml`，
+落盘到组长交接中指定的案件 canonical 工作区 `<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/scorecard.yaml`。成员自己的工作目录只能用于临时读取；不得把 scorecard 或最终报告写到成员 workspace 后再要求组长自行寻找或复制。
 旧版本保留不覆盖。
 
 ### 产物完整性闸门（必须在任何 handoff 之前执行）
 
 `scorecard.yaml` 是审计事实源，写坏一个字符就等于没有回执。写入后必须立刻用 `Read` 从磁盘重新读取**完整文件**，再逐项检查：
+
+写入前先用 `Ls` 确认 canonical 根和目标目录；首写必须是目录下的具体文件。写入后回读并确认规范化绝对路径按完整路径段仍位于 `<lead_workspace>/contract-review/` 内；目录冲突、嵌套失败、链接边界无法确认或根外路径统一返回 `REJECT-OUTPUT-DIR`，不得回退到成员 workspace、相对路径或别名路径。
 
 1. 顶层 `review_scorecard`、`object`、`dimensions`、`findings`、`actions`、`human_gates`、`release_decision`、`pending_settlement`、`reverify_ledger`、`unverified_ledger`、`divergence_ledger` 与 `independence_attestation` 均存在；`release_decision` 必须是允许值。
 2. 对 `reverify_ledger`、`unverified_ledger`、`divergence_ledger`、`human_gates` 和 `pending_settlement` 一律使用**块映射**（每个字段独占一行），禁止嵌套 inline map。证据中的 `{`、`}`、`[`、`]`、`:`、换行或前导 `#` 必须使用单引号包住；不要在行尾重复 `}` 或 `]`。

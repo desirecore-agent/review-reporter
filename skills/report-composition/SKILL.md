@@ -9,7 +9,7 @@ description: >-
   Use to render the final contract review report: three-phase delivery, clause-level findings with
   mandatory four-part conclusions, an evidence index traceable to page and quote, a prioritized
   action list, human sign-off gates, and an independence attestation.
-version: 1.0.1
+version: 1.0.3
 type: procedural
 risk_level: low
 status: enabled
@@ -29,7 +29,7 @@ requires:
     - MathCalc
 metadata:
   author: DesireCore
-  version: 1.0.1
+  version: 1.0.3
   updated_at: '2026-09-07'
 ---
 
@@ -128,8 +128,9 @@ metadata:
 
 ## 完整报告模板
 
-落盘到 `<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/report.md`
-（`<有效工作目录>` 用 `Ls` 实际确认后取绝对路径，**不要写死任何用户主目录字面量**）。
+落盘到交接载荷提供的 lead canonical 根：`<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/report.md`。
+`<lead_workspace>` 必须来自组长交接中的明确绝对路径；成员自己的 workspace 只能读取，禁止作为报告写入根。
+首写必须是 canonical 根下的具体 `report.md` 文件。写入前用 `Ls` 确认目标目录，写入后立即 `Read` 完整回读；规范化绝对路径按完整路径段确认仍在 `<lead_workspace>/contract-review/` 内。目录冲突、嵌套失败、链接边界无法确认或根外路径统一返回 `REJECT-OUTPUT-DIR`，不得回退到成员 workspace、相对路径或别名路径。
 旧报告保留不覆盖。
 
 下面以 C06b（附件替换陷阱）为例给出**完整可复制模板**，方括号为占位说明：
@@ -339,7 +340,7 @@ metadata:
 ### 落盘
 
 ```
-<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/
+<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/
 ├── sanitized-input.yaml     # R0 净化产物（review-scoring 已写）
 ├── scorecard.yaml           # 评分回执（review-scoring 已写）
 └── report.md                # 本技能产物
