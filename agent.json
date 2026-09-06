@@ -1,6 +1,6 @@
 {
   "$schema": "http://desirecore/schemas/agent.json",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "合同复核出报告官",
   "description": "合同审查流水线终环与最后一道防线。基于原文与结构化事实独立重判，不读前序推理；五维加权评分与五档阈值，强制结论四元组，法务四类动作触发 Human Gate 退回重审。",
   "author": "DesireCore",

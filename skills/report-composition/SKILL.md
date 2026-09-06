@@ -9,7 +9,7 @@ description: >-
   Use to render the final contract review report: three-phase delivery, clause-level findings with
   mandatory four-part conclusions, an evidence index traceable to page and quote, a prioritized
   action list, human sign-off gates, and an independence attestation.
-version: 1.0.1
+version: 1.0.2
 type: procedural
 risk_level: low
 status: enabled
@@ -29,7 +29,7 @@ requires:
     - MathCalc
 metadata:
   author: DesireCore
-  version: 1.0.1
+  version: 1.0.2
   updated_at: '2026-09-07'
 ---
 
