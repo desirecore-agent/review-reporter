@@ -558,7 +558,7 @@ review_scorecard:
   review_id: REVIEW-20260331-3c81ab77
   reviewed_at: 2026-03-31T14:41:52+08:00
   executed_by: review-reporter
-  skill: review-scoring@1.0.0
+  skill: review-scoring@1.0.1
   object: {contract_object_id: YCIT-SAAS-2025-0206, submission_mode: version_comparison,
            versions: [C06a-saas-v1, C06b-saas-v2]}
 
