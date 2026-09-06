@@ -340,7 +340,7 @@ metadata:
 ### 落盘
 
 ```
-<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/
+<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/
 ├── sanitized-input.yaml     # R0 净化产物（review-scoring 已写）
 ├── scorecard.yaml           # 评分回执（review-scoring 已写）
 └── report.md                # 本技能产物
