@@ -10,7 +10,7 @@ description: >-
   Use for independent cross-review and weighted scoring of a contract review: sanitizes upstream
   input, re-derives every claim from the source document, computes the five-dimension weighted
   score with fixed deduction tables, maps to the five action tiers, and raises human sign-off gates.
-version: 1.0.2
+version: 1.0.3
 type: procedural
 risk_level: low
 status: enabled
@@ -32,7 +32,7 @@ requires:
     - AskUserQuestion
 metadata:
   author: DesireCore
-  version: 1.0.2
+  version: 1.0.3
   updated_at: '2026-09-07'
 ---
 
@@ -521,6 +521,34 @@ rerun_request:
 | `GATE-DISPUTE` | 争议解决机制：管辖权、仲裁 / 诉讼选择、仲裁机构、适用法冲突 |
 | `GATE-LIABILITY` | 责任违约分配：责任上限、间接损失排除、不可抗力范围、赔偿例外 |
 | `GATE-EXECUTION` | 生效要件：有效签章、依赖附件、法定形式、生效条件先例 |
+
+### R6.0 闸门前持久化（强制，先于第一个 AskUserQuestion）
+
+命中任一 Human Gate 时，不能先提问再补产物。提问会把 run 阻塞在 `AskUserQuestion`，
+组长此时收不到同步回执；如果进程被关闭，案件就会只留下半成品，无法判断是否已经安全停在人工闸门。
+
+在调用**第一个** `AskUserQuestion` 之前，必须完成以下顺序：
+
+1. 把完整的 `scorecard.yaml` 按 R7 写入 lead canonical 根，并立即完整 `Read` 回读；其中
+   `human_gates[*].status` 必须是 `pending`，`release_decision` 必须是
+   `blocked_by_human_gate`，不得写成 `released_to_legal`。
+2. 按 `report-composition` 写出完整 `report.md`，至少包含审前/审中/审后三段、全部发现、
+   每个 `GATE-*` 的四元组、`pending_settlement`、证据索引和“不是放行”的阻断声明；写入后立即
+   `Read` 完整回读。报告路径必须位于 lead canonical 根，不能写成员 workspace。
+3. 写出并回读 `human-gate-receipt.yaml`，字段必须包括 `review_id`、`report_path`、
+   `scorecard_path`、`human_gates`、`release_decision: blocked_by_human_gate`、
+   `status: waiting_for_human`、`do_not_pass` 和 `source_artifacts`。这是人工输入尚未返回时的
+   可恢复事实源，不能用口头消息替代。
+4. 任一文件写入、回读、路径边界或 YAML 结构检查失败，必须返回
+   `REJECT-HUMAN-GATE-PREFLIGHT` 并停止提问；禁止先问再修，禁止把文件写到成员 workspace。
+5. 只有三个文件全部回读通过后，才可逐个调用 `AskUserQuestion`。真人未确认、run 被停止或问题
+   超时均保持 `pending`；不得把沉默解释成同意。收到答案后再更新同一 review 目录的回执和报告，
+   并在最终回执中保留问题原文、确认人、时间和决定。
+
+组长在收到 `human-gate-receipt.yaml` 或最终回执时，必须将账本推进到
+`O5_HUMAN_GATE`（或等价 `HALTED_FOR_HUMAN`），记录所有 `human_gates` 为 `pending`、
+`report_path`/`scorecard_path`/`human-gate-receipt.yaml`，并保留 outer run 与 case/run ID
+不一致的事实；只有明确人工决定后才可进入 `O6_DELIVERED`。
 
 **处理流程**：
 

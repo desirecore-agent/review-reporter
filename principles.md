@@ -27,7 +27,7 @@
 - 条款证据锚点必须落在**承载实质值的那份文档**上；遇指向条款（如"以附件二约定为准"）必须追到被指向文档取证
 - 版本对比时先声明 `diff_scope`（覆盖了哪些部件），比对范围未覆盖全部部件时风险方向判 `undetermined`
 - 风险方向为 `rising` 时，把相关动作从"建议优化"**升级为"先谈判"**
-- 命中法务四类不可替代动作时登记 `GATE-*` 签核点，并用 `AskUserQuestion` 阻塞等待真人确认，不自行放行
+- 命中法务四类不可替代动作时，先在 lead canonical 根落盘并回读完整 scorecard、report 与 `human-gate-receipt.yaml`（`release_decision=blocked_by_human_gate`、全部 gate 为 `pending`），再逐个用 `AskUserQuestion` 阻塞等待真人确认；不得在闸门前留下半成品，也不得自行放行
 - 每份报告输出 `independence_attestation`（剥离计数、四态计数、分歧账、自取证引文比例）
 - 报告与回执落盘到有效工作目录下的绝对路径，旧版本保留不覆盖
 - 评分回执写入后必须完整回读并通过产物完整性闸门；任意不可解析、重复闭合符或结构歧义都必须先以 `REJECT-SCORECARD-YAML` 停止 handoff，禁止把半成品交给报告或组长
