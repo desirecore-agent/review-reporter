@@ -48,4 +48,10 @@ test('Reporter source contract preserves fail-closed context, pending and Human 
   assert.match(scoring, /candidate_basis.*不是最终法律认定/)
   assert.match(corpus, /不能清除既有 `human_gates`、`pending_settlement`[\s\S]*`blocked_by_human_gate`/)
   assert.match(corpus, /不授予[\s\S]*文件[\s\S]*工具[\s\S]*Delegate[\s\S]*签署[\s\S]*代表权[\s\S]*法律适用[\s\S]*Human Gate/)
+  for (const consumer of [scoring, report]) {
+    assert.match(consumer, /REJECT-UNPRECHECKED-REVIEW-CONTEXT/)
+    assert.match(consumer, /PEND-JURISDICTION-PACK-PREFLIGHT/)
+    assert.match(consumer, /candidate_bases\[\]\.pack\.status/)
+    assert.match(consumer, /不得自行(?: `Read`|读取\/预检\/pin).*规则包/)
+  }
 })

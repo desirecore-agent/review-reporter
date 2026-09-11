@@ -100,6 +100,14 @@ Team 审查交接如包含任一 `review_context_*` 字段，则下列五项必�
 法律适用或 Human Gate 授权。`review_stance.review_subject_label` 只是用户声明的审查视角；
 `jurisdiction.candidate_basis` 只是已经读取并 pin 的审查基准，均不是最终法律认定。
 
+在写入 `sanitized-input.yaml`、评分、生成 `scorecard.yaml` 或任何业务成果前，检查唯一
+`jurisdiction.candidate_basis.pack.status`，或 `jurisdiction.status: conflicting` 内每个
+`candidate_bases[].pack.status`。任一为 `not_prechecked` 时，原样保留
+`PEND-JURISDICTION-PACK-PREFLIGHT` 与既有 `HG-02`（如有），只返回失败诊断
+`REJECT-UNPRECHECKED-REVIEW-CONTEXT`。不得自行 `Read` 规则包/规则文件、预检、pin 或择一候选
+补救；不得写成功评分回执、报告、交接或任何业务成果。`not_issued_pack_preflight_pending` 是 Lead
+受限 O0 的拒绝边界，不是评分阶段可继续消费的普通 constraint。
+
 将已核对记录原样写入 `sanitized-input.yaml` 的 `review_context` 元数据（不复制任何上游推理）。
 在 scorecard、report 与最终回执回显以下闭合对象；`actual_output_constraints` 必须是本次实际遵守的
 同一 constraints，而不是成员自行收窄/放宽后的声明：
@@ -135,11 +143,13 @@ review_context_echo:
 | `review_stance.status: missing` | 原文事实、四态台账、保留 `PEND-REVIEW-STANCE-REQUIRED`（`required_from: user`）与澄清请求 | 方向性风险、redline、谈判及行动建议 |
 | `jurisdiction.status: undetermined` | 原文事实、四态台账、保留 `PEND-JURISDICTION-BASIS-REQUIRED`（`required_from: user`）与澄清请求 | 不得默认选法域/规则包或输出法域实体结论 |
 | `jurisdiction.status: conflicting` | 原文事实、四态台账、全部候选和 `HG-02`（`required_from: user`） | 法域实体结论；不得择一默认 |
+| 任一候选 `pack.status: not_prechecked` | 仅失败诊断 `REJECT-UNPRECHECKED-REVIEW-CONTEXT`，保留 `PEND-JURISDICTION-PACK-PREFLIGHT` 与已有 `HG-02` | 不得生成评分、报告、成功回执或业务成果；不得自行预检/读取规则包 |
 | candidate pack `unavailable` | 原文事实、`RULE_SOURCE_UNAVAILABLE` pending（`required_from: lead`） | 法域实体结论；不得回退到另一规则包 |
 
 具体地，`not_issued_missing_review_stance` 只能抑制方向性风险、redline 与谈判建议；
 `not_issued_missing_jurisdiction`、`not_issued_hg_02_conflict` 与
-`not_issued_rule_source_unavailable` 只能抑制法域实体结论。它们都不能被补写成“合规”、
+`not_issued_rule_source_unavailable` 只能抑制法域实体结论。`not_issued_pack_preflight_pending`
+按前述规则拒绝本次消费，不能降格为普通抑制后继续评分。其余这些状态都不能被补写成“合规”、
 “适用某法”或任何默认方向性建议。
 
 用户补充后，只有 Lead 写入**同一 case binding 与 current manifest**的更高 revision，并重新以五个

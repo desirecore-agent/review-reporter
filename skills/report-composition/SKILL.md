@@ -393,6 +393,12 @@ manifest 和 output constraints 逐项精确比较。任一不一致只回报
 记录本次实际遵守的范围，不授予任何文件或工具权限（包括 Read、Write），亦不授予 Delegate、签署、代表权、法律适用或 Human Gate 权限。旧 `HG-02`、其他 pending 与
 `blocked_by_human_gate` 必须原样保留，不能因 context revision 或用户补充而消失。
 
+在排版、写入 `report.md` 或回传任何成功结果前，还要检查唯一 `candidate_basis.pack.status`，或
+`conflicting` 的每个 `candidate_bases[].pack.status`。只要任一为 `not_prechecked`，原样保留
+`PEND-JURISDICTION-PACK-PREFLIGHT` 与已有 `HG-02`（如有），仅返回
+`REJECT-UNPRECHECKED-REVIEW-CONTEXT`。不得自行读取/预检/pin 规则包补救，也不得把
+`not_issued_pack_preflight_pending` 当作可继续排版的普通输出限制；不写报告、成功回执或业务成果。
+
 ### ⚠️ 禁止以 `subtask` 模式承接或发起复核
 
 `Delegate` 的 `subtask` 模式**继承发起方的完整对话历史（含全部工具调用与结果）**。

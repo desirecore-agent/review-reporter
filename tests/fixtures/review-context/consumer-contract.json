@@ -3,7 +3,7 @@
   "handoff_keys": ["review_context_path", "review_context_case_id", "review_context_revision", "review_context_current_manifest", "review_context_output_constraints"],
   "echo_keys": ["case_id", "revision", "current_manifest", "actual_output_constraints"],
   "constraint_keys": ["factual_extraction", "directional_risk_advice", "redline_or_negotiation_advice", "jurisdiction_substantive_conclusion"],
-  "required_rejections": ["REJECT-STALE-REVIEW-CONTEXT", "REJECT-REVIEW-CONTEXT-REQUIRED"],
-  "required_pending": ["PEND-REVIEW-STANCE-REQUIRED", "PEND-JURISDICTION-BASIS-REQUIRED", "HG-02", "RULE_SOURCE_UNAVAILABLE"],
-  "suppressed_constraints": ["not_issued_missing_review_stance", "not_issued_missing_jurisdiction", "not_issued_hg_02_conflict", "not_issued_rule_source_unavailable"]
+  "required_rejections": ["REJECT-STALE-REVIEW-CONTEXT", "REJECT-REVIEW-CONTEXT-REQUIRED", "REJECT-UNPRECHECKED-REVIEW-CONTEXT"],
+  "required_pending": ["PEND-REVIEW-STANCE-REQUIRED", "PEND-JURISDICTION-BASIS-REQUIRED", "PEND-JURISDICTION-PACK-PREFLIGHT", "HG-02", "RULE_SOURCE_UNAVAILABLE"],
+  "suppressed_constraints": ["not_issued_missing_review_stance", "not_issued_missing_jurisdiction", "not_issued_hg_02_conflict", "not_issued_pack_preflight_pending", "not_issued_rule_source_unavailable"]
 }
