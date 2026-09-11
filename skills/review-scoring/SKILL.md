@@ -77,6 +77,76 @@ metadata:
 
 **这是收到交接后的第一个动作。不是分析，是验收与剥离。**
 
+### R0.0 Lead review context（存在时先精确核对）
+
+Team 审查交接如包含任一 `review_context_*` 字段，则下列五项必须同时存在：
+`review_context_path`、`review_context_case_id`、`review_context_revision`、
+`review_context_current_manifest`、`review_context_output_constraints`。先完整 `Read`
+`review_context_path` 指向的 Lead `review-context.yaml`，再逐项精确比对：
+
+1. `case_binding.case_id` 等于 `review_context_case_id`；
+2. `revision` 等于 `review_context_revision`；
+3. `case_binding.current_contract_manifest` 与 `review_context_current_manifest` 完全相等；
+4. `output_constraints` 与 `review_context_output_constraints` 完全相等；
+5. 记录为 schema version 1，且其 `pending[]`、`review_stance` 与 `jurisdiction` 形状可读。
+
+任一字段缺失、路径不可读、形状不闭合或比较不相等，返回
+`REJECT-STALE-REVIEW-CONTEXT`，不进入 R1。旧报告摘要、`review_id`、run/session、成员自报或
+用户的“继续”措辞都不是 context identity，不能代替上述比较。Team 路径没有 context 时返回
+`REJECT-REVIEW-CONTEXT-REQUIRED`，不得伪造默认 context。独立用户会话可以继续做事实提取与
+澄清，但不能伪造 Team context 或输出依赖 context 的方向性/法域建议。
+
+`review_context` 是 Lead 的输出范围声明，不是文件、工具、Delegate、签署、代表权、合同方身份、
+法律适用或 Human Gate 授权。`review_stance.review_subject_label` 只是用户声明的审查视角；
+`jurisdiction.candidate_basis` 只是已经读取并 pin 的审查基准，均不是最终法律认定。
+
+将已核对记录原样写入 `sanitized-input.yaml` 的 `review_context` 元数据（不复制任何上游推理）。
+在 scorecard、report 与最终回执回显以下闭合对象；`actual_output_constraints` 必须是本次实际遵守的
+同一 constraints，而不是成员自行收窄/放宽后的声明：
+
+```yaml
+review_context_handoff:
+  review_context_path: /abs/lead/review-context.yaml
+  review_context_case_id: case-example
+  review_context_revision: 2
+  review_context_current_manifest:
+    status: available
+    digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  review_context_output_constraints:
+    factual_extraction: allowed
+    directional_risk_advice: allowed
+    redline_or_negotiation_advice: allowed
+    jurisdiction_substantive_conclusion: allowed
+review_context_echo:
+  case_id: case-example
+  revision: 2
+  current_manifest:
+    status: available
+    digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  actual_output_constraints:
+    factual_extraction: allowed
+    directional_risk_advice: allowed
+    redline_or_negotiation_advice: allowed
+    jurisdiction_substantive_conclusion: allowed
+```
+
+| Context 状态 | 仍可输出 | 必须抑制并保留 |
+|---|---|---|
+| `review_stance.status: missing` | 原文事实、四态台账、保留 `PEND-REVIEW-STANCE-REQUIRED`（`required_from: user`）与澄清请求 | 方向性风险、redline、谈判及行动建议 |
+| `jurisdiction.status: undetermined` | 原文事实、四态台账、保留 `PEND-JURISDICTION-BASIS-REQUIRED`（`required_from: user`）与澄清请求 | 不得默认选法域/规则包或输出法域实体结论 |
+| `jurisdiction.status: conflicting` | 原文事实、四态台账、全部候选和 `HG-02`（`required_from: user`） | 法域实体结论；不得择一默认 |
+| candidate pack `unavailable` | 原文事实、`RULE_SOURCE_UNAVAILABLE` pending（`required_from: lead`） | 法域实体结论；不得回退到另一规则包 |
+
+具体地，`not_issued_missing_review_stance` 只能抑制方向性风险、redline 与谈判建议；
+`not_issued_missing_jurisdiction`、`not_issued_hg_02_conflict` 与
+`not_issued_rule_source_unavailable` 只能抑制法域实体结论。它们都不能被补写成“合规”、
+“适用某法”或任何默认方向性建议。
+
+用户补充后，只有 Lead 写入**同一 case binding 与 current manifest**的更高 revision，并重新以五个
+handoff 字段交付时，才可消费新 context。旧 revision 的报告和回执保留为历史，不能 overwrite 当前
+产物，更不能清除既有 `human_gates`、`pending_settlement`、`human-gate-receipt.yaml` 或
+`release_decision: blocked_by_human_gate`。
+
 ### R0.1 契约必备字段核对
 
 上游交接块（见输入治理技能「结构化交接」一节）必须齐备下列顶层字段，缺一即拒收：
@@ -154,6 +224,9 @@ sanitized_input:
   confirmed: [...]                              # 原样透传
   pending: [...]                                # 原样透传，一条不删
   scope: {...}                                  # 含 frozen_baseline / consistency_conclusion_allowed
+  review_context:                               # 仅已按 R0.0 精确核对时写入；否则省略
+    path: /abs/lead/review-context.yaml
+    echo: {...}                                 # 只含 case_id/revision/current_manifest/actual_output_constraints
   artifacts:                                    # 绝对路径
     source_documents: [/abs/.../C06a-saas-v1.md, /abs/.../C06b-saas-v2.md]
     clause_table: /abs/.../clauses.yaml
@@ -182,6 +255,8 @@ sanitized_input:
 4. 锁定**适用标尺集**（见 R4 · D2 标尺表）与**法域规则包**（`rule_id` + 版本，来自法域报告，不得凭记忆补）。
 5. 把 `pending[]` 逐条登记为待兑现项。`must_escalate: true` 的每一条在最终报告里必须有明确落点
    （成为 `FND-*`、成为 `GATE-*`、或被显式判为不成立并说明理由）。**不得消失、不得被合并稀释。**
+6. R0.0 已核对 context 时，先把其全部 typed `pending[]` 一并登记。`not_issued_*` 是输出抑制，
+   不是可由评分、模型记忆或旧摘要填补的事实；`HG-02` 与既有 Human Gate 均须保留。
 
 ---
 
@@ -629,6 +704,12 @@ review_scorecard:
   human_gates:
     - {id: GATE-LIABILITY, status: pending, question: ..., evidence: {...}}
   release_decision: blocked_by_human_gate   # released_to_legal | blocked_by_human_gate | returned_for_rework
+
+  review_context_echo:                       # context-bound run required; otherwise omit
+    case_id: case-example
+    revision: 2
+    current_manifest: {status: available, digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+    actual_output_constraints: {factual_extraction: allowed, directional_risk_advice: allowed, redline_or_negotiation_advice: allowed, jurisdiction_substantive_conclusion: allowed}
 
   pending_settlement:              # 上游 pending[] 的兑现台账，一条不少
     - {id: PEND-01, must_escalate: true, landed_as: [FND-001, FND-002, GATE-LIABILITY]}

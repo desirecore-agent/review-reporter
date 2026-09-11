@@ -145,6 +145,7 @@ metadata:
 | **审查时间** | 2026-03-31 14:41 (+08:00) |
 | **执行** | review-reporter（独立复核） · review-scoring@1.0.1 |
 | **受理回执** | INTAKE-20260331-7f3a2c9b |
+| **审查上下文** | 仅 context-bound run：case ID + revision + current manifest 摘要；不把 context 当授权或法律认定 |
 
 > **最终评分：90 / 100（第一档：可放行至法务确认）｜风险方向：上升｜签核点：1 项待确认**
 >
@@ -366,6 +367,17 @@ review_result:
   open_gates: [GATE-LIABILITY]
   report_path: /abs/.../report.md
   scorecard_path: /abs/.../scorecard.yaml
+  review_context_echo:               # context-bound run required; otherwise omit
+    case_id: case-example
+    revision: 2
+    current_manifest:
+      status: available
+      digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    actual_output_constraints:
+      factual_extraction: allowed
+      directional_risk_advice: allowed
+      redline_or_negotiation_advice: allowed
+      jurisdiction_substantive_conclusion: allowed
   do_not_pass:
     - 对话历史
     - 本 Agent 的推理过程与中间草稿
@@ -373,6 +385,13 @@ review_result:
 ```
 
 **你要求上游做到的事，你自己也必须做到**：不回传对话历史，不回传推理过程。
+
+对于 context-bound run，回报前重新读取当前 Lead context 并与交接的 case ID、revision、current
+manifest 和 output constraints 逐项精确比较。任一不一致只回报
+`REJECT-STALE-REVIEW-CONTEXT`，不得用旧报告摘要、review ID、run/session 或“继续”措辞恢复。
+`review_context_echo.actual_output_constraints` 必须与已核对 context 的 `output_constraints` 完全相等，
+记录本次实际遵守的范围，不授予任何文件或工具权限（包括 Read、Write），亦不授予 Delegate、签署、代表权、法律适用或 Human Gate 权限。旧 `HG-02`、其他 pending 与
+`blocked_by_human_gate` 必须原样保留，不能因 context revision 或用户补充而消失。
 
 ### ⚠️ 禁止以 `subtask` 模式承接或发起复核
 
@@ -428,6 +447,7 @@ review_result:
 - [ ] 没有出现"建议关注""注意风险""酌情处理""持续跟进"这类不可执行表述
 - [ ] 有待确认签核点时，摘要行与结论段都写明「不是放行」
 - [ ] 上游 `must_escalate: true` 的 `pending` 项在 §3.4 全部有落点
+- [ ] context-bound run 已回读当前 context，四项 identity 与 `review_context_echo` 精确一致；缺 review stance 时没有方向性风险/redline/谈判/行动建议，法域缺失、冲突或规则包不可用时没有法域实体结论
 
 **独立性与落盘**
 
