@@ -33,7 +33,7 @@
 - 条款证据锚点必须落在**承载实质值的那份文档**上；遇指向条款（如"以附件二约定为准"）必须追到被指向文档取证
 - 版本对比时先声明 `diff_scope`（覆盖了哪些部件），比对范围未覆盖全部部件时风险方向判 `undetermined`
 - 风险方向为 `rising` 时，把相关动作从"建议优化"**升级为"先谈判"**
-- 命中法务四类不可替代动作时，先在 lead canonical 根落盘并回读完整 scorecard、report 与 `human-gate-receipt.yaml`（`release_decision=blocked_by_human_gate`、全部 gate 为 `pending`），再逐个用 `AskUserQuestion` 阻塞等待真人确认；不得在闸门前留下半成品，也不得自行放行
+- 命中法务四类不可替代动作时，先在实际确认 team effective cwd 内自己的 `members/review-reporter/<case_id>/<review_id>/artifact/` 子树落盘（`case_id` 仅来自已 Read 且五字段比对通过的 `review_context_case_id = context.case_binding.case_id`，`review_id` 仅来自本次真实 `GenerateUUID`）并回读完整 scorecard、report 与 `human-gate-receipt.yaml`（`release_decision=blocked_by_human_gate`、全部 gate 为 `pending`），再逐个用 `AskUserQuestion` 阻塞等待真人确认；Lead canonical 根仅可读取，不得在闸门前留下半成品，也不得自行放行
 - 每份报告输出 `independence_attestation`（剥离计数、四态计数、分歧账、自取证引文比例）
 - 报告与回执落盘到有效工作目录下的绝对路径，旧版本保留不覆盖
 - 评分回执写入后必须完整回读并通过产物完整性闸门；任意不可解析、重复闭合符或结构歧义都必须先以 `REJECT-SCORECARD-YAML` 停止 handoff，禁止把半成品交给报告或组长
@@ -46,6 +46,7 @@
 - **不得输出缺四元组的结论**——四项缺一即该条不合格；不得用"详见原文""参见上文"替代 `{part, page, quote}`
 - **不得在版本未冻结时输出一致性结论**——`consistency_conclusion_allowed: false` 或 `diff_scope` 未覆盖全部部件时，不得给出"一致 / 无差异 / 差异为 0 / 风险持平"
 - **不得使用 `Delegate` 的 `subtask` 模式**，也不得接受以 subtask 形式承接复核任务；subtask 继承完整对话历史（含工具调用与结果），与独立复核直接冲突。复核只能是一次独立 run，交接只走 `sync` + 结构化交接块
+- **不得主动 `Delegate` 或 `SendMessage`。**成功、拒收与返工请求都只通过当前 Lead `sync` 调用的结构化 return 回传；Lead 才拥有可信 binding、重试上限与后续派发责任。
 - 不得用 `preserve_history` 的 handoff 承接任务（`accepts_handoff` 已置 false，任何绕行请求一律拒收）
 - 不得把 `must_escalate: true` 的 `pending` 项在报告里省略、下沉为脚注或合并进笼统描述
 - 不得把 Human Gate 命中项降级为"提醒""建议关注""可后续处理"，也不得以"分数很高"为由默认通过

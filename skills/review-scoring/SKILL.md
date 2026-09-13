@@ -202,7 +202,7 @@ I think|I believe|therefore|because|hence|overall|in my judgment|likely|presumab
 **拒收动作**（不是"收下但不看"）：
 
 1. 不进入 R1，不做任何实质分析。
-2. 用 `Delegate`（`mode: sync`）向来源发回：
+2. 以本次同步调用的 **return** 返回给 Lead：不得调用 `Delegate` 或 `SendMessage` 另起一次调度。
 
 ```yaml
 input_rejection:
@@ -223,7 +223,7 @@ input_rejection:
 
 ### R0.4 落盘净化产物
 
-写到 `<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/sanitized-input.yaml`：
+团队同步路径写到 `<实际确认的 team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/sanitized-input.yaml`：先 `Read` `review_context_path` 并逐项比对公开五字段，只有 `review_context_case_id` 与 context `case_binding.case_id` 精确相等时才逐字使用该值作为 `case_id`；不得从 task、intentId、路径、旧回执或成员文本推导。`review_id` 只能取本次真实 `GenerateUUID`；`lead_workspace` 与 `canonical_artifact_root` 只可读取来源，绝不构成输出授权。独立非 Team 路径才使用本 Agent 已确认的 workspace。
 
 ```yaml
 sanitized_input:
@@ -579,7 +579,7 @@ total = floor( 0.20·D1 + 0.25·D2 + 0.20·D3 + 0.15·D4 + 0.20·D5 )
 - 只在**证据侧**退回（某维 `unlocatable` 过多、必查项大面积 `not_covered`），
   不因**结论侧**分歧退回——结论分歧进 `DIV-*` 由人裁决，不是让上游改口。
 - **每维最多退回一次**。第二次仍不合格，不再退回，直接判 `TIER-4-HUMAN-LED` 并写明升级理由。
-- 用 `Delegate`（`mode: sync`），只发失败编码 + 需补字段 + 部件与页码范围。
+- 只以本次同步调用的 **return** 发出失败编码、需补字段、部件与页码范围；不得调用 `Delegate` 或 `SendMessage`，由 Lead 按其可信 binding 与返工上限决定是否续跑。
   **不含你的判断与倾向**——否则第二轮就是照着你的答案抄的，不再是独立产出。
 
 ```yaml
@@ -614,18 +614,18 @@ rerun_request:
 
 在调用**第一个** `AskUserQuestion` 之前，必须完成以下顺序：
 
-1. 把完整的 `scorecard.yaml` 按 R7 写入 lead canonical 根，并立即完整 `Read` 回读；其中
+1. 把完整的 `scorecard.yaml` 按 R7 写入本次实际确认 team effective cwd 的 member-owned artifact 子树，并立即完整 `Read` 回读；其中
    `human_gates[*].status` 必须是 `pending`，`release_decision` 必须是
    `blocked_by_human_gate`，不得写成 `released_to_legal`。
 2. 按 `report-composition` 写出完整 `report.md`，至少包含审前/审中/审后三段、全部发现、
    每个 `GATE-*` 的四元组、`pending_settlement`、证据索引和“不是放行”的阻断声明；写入后立即
-   `Read` 完整回读。报告路径必须位于 lead canonical 根，不能写成员 workspace。
+   `Read` 完整回读。报告路径也必须位于同一 member-owned artifact 子树；Lead canonical 根只能读取，不能作为成员输出位置。
 3. 写出并回读 `human-gate-receipt.yaml`，字段必须包括 `review_id`、`report_path`、
    `scorecard_path`、`human_gates`、`release_decision: blocked_by_human_gate`、
    `status: waiting_for_human`、`do_not_pass` 和 `source_artifacts`。这是人工输入尚未返回时的
    可恢复事实源，不能用口头消息替代。
 4. 任一文件写入、回读、路径边界或 YAML 结构检查失败，必须返回
-   `REJECT-HUMAN-GATE-PREFLIGHT` 并停止提问；禁止先问再修，禁止把文件写到成员 workspace。
+   `REJECT-HUMAN-GATE-PREFLIGHT` 并停止提问；禁止先问再修，禁止写到 Lead canonical 根、其他成员 workspace 或猜测的目录。
 5. 只有三个文件全部回读通过后，才可逐个调用 `AskUserQuestion`。真人未确认、run 被停止或问题
    超时均保持 `pending`；不得把沉默解释成同意。收到答案后再更新同一 review 目录的回执和报告，
    并在最终回执中保留问题原文、确认人、时间和决定。
@@ -654,14 +654,14 @@ rerun_request:
 
 ## R7 出具评分回执
 
-落盘到组长交接中指定的案件 canonical 工作区 `<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/scorecard.yaml`。成员自己的工作目录只能用于临时读取；不得把 scorecard 或最终报告写到成员 workspace 后再要求组长自行寻找或复制。
+团队同步时落盘到本次 `Ls` 实际确认的 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/scorecard.yaml`。只有已 `Read` 并逐项比对通过的 `review_context_case_id = context.case_binding.case_id` 才可逐字作为 `case_id`；不得从 task、intentId、路径、旧回执或成员文本推导，`review_id` 只用本次真实 `GenerateUUID`；成员拥有该唯一新目录，旧版本不覆盖。`lead_workspace`、`canonical_artifact_root` 仅为可读输入来源，不能指定输出路径。Lead 只消费本次最终同步 return 原样给出的绝对路径，既不写入、改名、复制，也不从路径、旧回执或摘要猜测产物。独立非 Team 路径才使用本 Agent 已确认的 workspace。
 旧版本保留不覆盖。
 
 ### 产物完整性闸门（必须在任何 handoff 之前执行）
 
 `scorecard.yaml` 是审计事实源，写坏一个字符就等于没有回执。写入后必须立刻用 `Read` 从磁盘重新读取**完整文件**，再逐项检查：
 
-写入前先用 `Ls` 确认 canonical 根和目标目录；首写必须是目录下的具体文件。写入后回读并确认规范化绝对路径按完整路径段仍位于 `<lead_workspace>/contract-review/` 内；目录冲突、嵌套失败、链接边界无法确认或根外路径统一返回 `REJECT-OUTPUT-DIR`，不得回退到成员 workspace、相对路径或别名路径。
+写入前先用 `Ls` 确认 team effective cwd；首写必须是 member-owned artifact 子树中的具体文件，且不要求新父目录预先存在。写入后回读并确认规范化绝对路径按完整路径段仍位于 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/` 内；目录冲突、嵌套失败、链接边界无法确认、根外路径或普通 `Write` 失败统一 return `REJECT-OUTPUT-DIR`，不得回退到 Lead canonical 根、其他成员 workspace、相对路径或别名路径。
 
 1. 顶层 `review_scorecard`、`object`、`dimensions`、`findings`、`actions`、`human_gates`、`release_decision`、`pending_settlement`、`reverify_ledger`、`unverified_ledger`、`divergence_ledger` 与 `independence_attestation` 均存在；`release_decision` 必须是允许值。
 2. 对 `reverify_ledger`、`unverified_ledger`、`divergence_ledger`、`human_gates` 和 `pending_settlement` 一律使用**块映射**（每个字段独占一行），禁止嵌套 inline map。证据中的 `{`、`}`、`[`、`]`、`:`、换行或前导 `#` 必须使用单引号包住；不要在行尾重复 `}` 或 `]`。

@@ -46,7 +46,7 @@
 
 引文一律用你**自己重新定位到的原文**，标注部件与页码。禁止转引上游给的引文当作自己的证据。
 
-面向人时用中文自然语言 + 表格 + 条款级 Markdown；面向 Agent 时只发结构化回执块，不发对话历史、不发自己的推理过程——你要求上游做到的事，你自己也必须做到。
+面向人时用中文自然语言 + 表格 + 条款级 Markdown；面向 Agent 时只通过当前同步调用的 return 发结构化回执块，不发对话历史、不发自己的推理过程，也不调用 `Delegate` / `SendMessage` 二次调度——你要求上游做到的事，你自己也必须做到。团队同步的全部新产物只写入实际确认 team effective cwd 内自己的 `members/review-reporter/<case_id>/<review_id>/artifact/` 子树；`case_id` 仅可取自已 `Read` 且五字段比对通过的 `review_context_case_id = context.case_binding.case_id`，`review_id` 仅可取本次真实 `GenerateUUID`。
 
 ## L2
 

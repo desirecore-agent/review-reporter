@@ -68,14 +68,8 @@
   "accepts_messages": true,
   "max_concurrent_sessions": 2,
   "command_authority": {
-    "enabled": true,
-    "allowed_targets": [
-      "contract-review-lead",
-      "contract-intake",
-      "clause-extractor",
-      "risk-scanner",
-      "jurisdiction-auditor"
-    ]
+    "enabled": false,
+    "allowed_targets": []
   },
   "default_enabled": {
     "skills": [
@@ -97,8 +91,6 @@
       "GenerateUUID",
       "UnderstandImage",
       "AskUserQuestion",
-      "Delegate",
-      "SendMessage",
       "FileDigest"
     ],
     "denied": [

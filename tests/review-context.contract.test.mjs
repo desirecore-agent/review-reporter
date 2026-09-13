@@ -55,3 +55,25 @@ test('Reporter source contract preserves fail-closed context, pending and Human 
     assert.match(consumer, /不得自行(?: `Read`|读取\/预检\/pin).*规则包/)
   }
 })
+test('Reporter keeps Team outputs in its member-owned cwd subtree and returns only to the sync caller', async () => {
+  const [agentText, persona, principles, scoring, report] = await Promise.all([
+    read('agent.json'),
+    read('persona.md'),
+    read('principles.md'),
+    read('skills/review-scoring/SKILL.md'),
+    read('skills/report-composition/SKILL.md'),
+  ])
+  const agent = JSON.parse(agentText)
+  assert.equal(agent.command_authority.enabled, false)
+  assert.deepEqual(agent.command_authority.allowed_targets, [])
+  assert.equal(agent.tool_permissions.allowed.includes('Delegate'), false)
+  assert.equal(agent.tool_permissions.allowed.includes('SendMessage'), false)
+  const corpus = `${persona}\n${principles}\n${scoring}\n${report}`
+  assert.match(corpus, /members\/review-reporter\/<case_id>\/<review_id>\/artifact/)
+  assert.match(corpus, /review_context_case_id.*case_binding\.case_id/s)
+  assert.match(corpus, /不得从 task、intentId、路径、旧回执或成员文本推导/)
+  assert.match(corpus, /review_id.*本次真实 `GenerateUUID`/)
+  assert.match(corpus, /Lead canonical 根(?:仅可读取|只能读取)/)
+  assert.match(corpus, /只通过本次同步调用的 \*\*return\*\* 回报/)
+  assert.match(corpus, /不得主动 `Delegate` 或 `SendMessage`/)
+})
