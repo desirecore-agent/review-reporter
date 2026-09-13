@@ -10,7 +10,7 @@ description: >-
   Use for independent cross-review and weighted scoring of a contract review: sanitizes upstream
   input, re-derives every claim from the source document, computes the five-dimension weighted
   score with fixed deduction tables, maps to the five action tiers, and raises human sign-off gates.
-version: 1.0.3
+version: 1.0.4
 type: procedural
 risk_level: low
 status: enabled
@@ -32,7 +32,7 @@ requires:
     - AskUserQuestion
 metadata:
   author: DesireCore
-  version: 1.0.3
+  version: 1.0.4
   updated_at: '2026-09-07'
 ---
 
