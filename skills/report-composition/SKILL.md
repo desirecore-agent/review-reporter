@@ -9,7 +9,7 @@ description: >-
   Use to render the final contract review report: three-phase delivery, clause-level findings with
   mandatory four-part conclusions, an evidence index traceable to page and quote, a prioritized
   action list, human sign-off gates, and an independence attestation.
-version: 1.0.3
+version: 1.0.4
 type: procedural
 risk_level: low
 status: enabled
@@ -29,7 +29,7 @@ requires:
     - MathCalc
 metadata:
   author: DesireCore
-  version: 1.0.3
+  version: 1.0.4
   updated_at: '2026-09-07'
 ---
 
@@ -120,7 +120,7 @@ metadata:
 | 定位 | 源文件**绝对路径** |
 | 命中串 | 用于 `Grep` 固定字符串复现的原文片段 |
 
-**命中串必须能被原样 `Grep` 到**——它是这份报告可复现性的凭证。写完索引后逐条实跑一遍
+**命中串必须能被原样 `Grep` 到**——它是这份报告可复现性的凭证。逐条复现传 `pattern: <命中串>, is_regex: false`，不得把 exact quote 当正则。写完索引后逐条实跑一遍
 `Grep`，命中失败的行必须修正到命中为止；修不出来的，说明该结论的证据不成立，
 应退回 `review-scoring` 重判为 `unlocatable`。
 
@@ -128,9 +128,7 @@ metadata:
 
 ## 完整报告模板
 
-落盘到交接载荷提供的 lead canonical 根：`<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/report.md`。
-`<lead_workspace>` 必须来自组长交接中的明确绝对路径；成员自己的 workspace 只能读取，禁止作为报告写入根。
-首写必须是 canonical 根下的具体 `report.md` 文件。写入前用 `Ls` 确认目标目录，写入后立即 `Read` 完整回读；规范化绝对路径按完整路径段确认仍在 `<lead_workspace>/contract-review/` 内。目录冲突、嵌套失败、链接边界无法确认或根外路径统一返回 `REJECT-OUTPUT-DIR`，不得回退到成员 workspace、相对路径或别名路径。
+团队同步时，落盘到本次 `Ls` 实际确认的 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/report.md`。先 `Read` `review_context_path`，逐项比对公开五字段；只有 `review_context_case_id` 与已读取 context 的 `case_binding.case_id` 精确相等时，才可将该值逐字作为 `<case_id>`，不得从 task、intentId、路径、旧回执或成员文本推导。`review_id` 只能使用本次真实 `GenerateUUID`；同一 artifact 子树也承载 `sanitized-input.yaml`、`scorecard.yaml` 与（如需）`human-gate-receipt.yaml`。`lead_workspace` 和 `canonical_artifact_root` 必须来自组长交接的明确绝对路径，但仅可读取输入，禁止作为报告或任何成员产物写入根。首写必须是该 member-owned 子树的具体 `report.md` 文件。写入后立即 `Read` 完整回读；规范化绝对路径按完整路径段确认仍在 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/` 内。目录冲突、嵌套失败、链接边界无法确认、根外路径或普通 `Write` 失败统一 return `REJECT-OUTPUT-DIR`，不得回退到 Lead canonical 根、其他成员 workspace、相对路径或别名路径。独立非 Team 路径才使用本 Agent 已确认的 workspace。
 旧报告保留不覆盖。
 
 下面以 C06b（附件替换陷阱）为例给出**完整可复制模板**，方括号为占位说明：
@@ -145,6 +143,7 @@ metadata:
 | **审查时间** | 2026-03-31 14:41 (+08:00) |
 | **执行** | review-reporter（独立复核） · review-scoring@1.0.1 |
 | **受理回执** | INTAKE-20260331-7f3a2c9b |
+| **审查上下文** | 仅 context-bound run：case ID + revision + current manifest 摘要；不把 context 当授权或法律认定 |
 
 > **最终评分：90 / 100（第一档：可放行至法务确认）｜风险方向：上升｜签核点：1 项待确认**
 >
@@ -340,9 +339,10 @@ metadata:
 ### 落盘
 
 ```
-<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/
+<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/
 ├── sanitized-input.yaml     # R0 净化产物（review-scoring 已写）
 ├── scorecard.yaml           # 评分回执（review-scoring 已写）
+├── human-gate-receipt.yaml  # 仅命中 Human Gate 时写
 └── report.md                # 本技能产物
 ```
 
@@ -351,7 +351,7 @@ metadata:
 
 ### 回报给发起方
 
-用 `Delegate`（`mode: sync`）或 `SendMessage` 回报，**只发结构化回执块**：
+只通过本次同步调用的 **return** 回报，且只返回结构化回执块；不得调用 `Delegate` 或 `SendMessage` 另起调度：
 
 ```yaml
 review_result:
@@ -366,6 +366,17 @@ review_result:
   open_gates: [GATE-LIABILITY]
   report_path: /abs/.../report.md
   scorecard_path: /abs/.../scorecard.yaml
+  review_context_echo:               # context-bound run required; otherwise omit
+    case_id: case-example
+    revision: 2
+    current_manifest:
+      status: available
+      digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    actual_output_constraints:
+      factual_extraction: allowed
+      directional_risk_advice: allowed
+      redline_or_negotiation_advice: allowed
+      jurisdiction_substantive_conclusion: allowed
   do_not_pass:
     - 对话历史
     - 本 Agent 的推理过程与中间草稿
@@ -373,6 +384,19 @@ review_result:
 ```
 
 **你要求上游做到的事，你自己也必须做到**：不回传对话历史，不回传推理过程。
+
+对于 context-bound run，回报前重新读取当前 Lead context 并与交接的 case ID、revision、current
+manifest 和 output constraints 逐项精确比较。任一不一致只回报
+`REJECT-STALE-REVIEW-CONTEXT`，不得用旧报告摘要、review ID、run/session 或“继续”措辞恢复。
+`review_context_echo.actual_output_constraints` 必须与已核对 context 的 `output_constraints` 完全相等，
+记录本次实际遵守的范围，不授予任何文件或工具权限（包括 Read、Write），亦不授予 Delegate、签署、代表权、法律适用或 Human Gate 权限。旧 `HG-02`、其他 pending 与
+`blocked_by_human_gate` 必须原样保留，不能因 context revision 或用户补充而消失。
+
+在排版、写入 `report.md` 或回传任何成功结果前，还要检查唯一 `candidate_basis.pack.status`，或
+`conflicting` 的每个 `candidate_bases[].pack.status`。只要任一为 `not_prechecked`，原样保留
+`PEND-JURISDICTION-PACK-PREFLIGHT` 与已有 `HG-02`（如有），仅返回
+`REJECT-UNPRECHECKED-REVIEW-CONTEXT`。不得自行读取/预检/pin 规则包补救，也不得把
+`not_issued_pack_preflight_pending` 当作可继续排版的普通输出限制；不写报告、成功回执或业务成果。
 
 ### ⚠️ 禁止以 `subtask` 模式承接或发起复核
 
@@ -388,8 +412,7 @@ review_result:
 | 复核 Agent 自己调用 `mode: subtask` | 会把自己已有的上下文再复制一份，无收益且扩大污染面 |
 | 用 `preserve_history: true` 的 handoff 承接复核 | 同理；`accepts_handoff` 已置 `false`，任何绕行请求一律拒收 |
 
-**唯一合法的交接方式**：`Delegate` `mode: sync` + 结构化交接块 + 绝对路径的产物文件。
-复核必须是一次**独立 run**，上下文从零开始，只装进过白名单的事实。
+唯一合法的入站交接方式：Lead 的 `Delegate` `mode: sync` + 结构化交接块 + 绝对路径的输入文件；Reporter 对成功、拒收与返工请求都只使用该同步调用的 return。复核必须是一次**独立 run**，上下文从零开始，只装进过白名单的事实。
 
 ---
 
@@ -428,6 +451,7 @@ review_result:
 - [ ] 没有出现"建议关注""注意风险""酌情处理""持续跟进"这类不可执行表述
 - [ ] 有待确认签核点时，摘要行与结论段都写明「不是放行」
 - [ ] 上游 `must_escalate: true` 的 `pending` 项在 §3.4 全部有落点
+- [ ] context-bound run 已回读当前 context，四项 identity 与 `review_context_echo` 精确一致；缺 review stance 时没有方向性风险/redline/谈判/行动建议，法域缺失、冲突或规则包不可用时没有法域实体结论
 
 **独立性与落盘**
 

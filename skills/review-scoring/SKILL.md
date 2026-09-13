@@ -10,7 +10,7 @@ description: >-
   Use for independent cross-review and weighted scoring of a contract review: sanitizes upstream
   input, re-derives every claim from the source document, computes the five-dimension weighted
   score with fixed deduction tables, maps to the five action tiers, and raises human sign-off gates.
-version: 1.0.3
+version: 1.0.4
 type: procedural
 risk_level: low
 status: enabled
@@ -32,7 +32,7 @@ requires:
     - AskUserQuestion
 metadata:
   author: DesireCore
-  version: 1.0.3
+  version: 1.0.4
   updated_at: '2026-09-07'
 ---
 
@@ -77,6 +77,86 @@ metadata:
 
 **这是收到交接后的第一个动作。不是分析，是验收与剥离。**
 
+### R0.0 Lead review context（存在时先精确核对）
+
+Team 审查交接如包含任一 `review_context_*` 字段，则下列五项必须同时存在：
+`review_context_path`、`review_context_case_id`、`review_context_revision`、
+`review_context_current_manifest`、`review_context_output_constraints`。先完整 `Read`
+`review_context_path` 指向的 Lead `review-context.yaml`，再逐项精确比对：
+
+1. `case_binding.case_id` 等于 `review_context_case_id`；
+2. `revision` 等于 `review_context_revision`；
+3. `case_binding.current_contract_manifest` 与 `review_context_current_manifest` 完全相等；
+4. `output_constraints` 与 `review_context_output_constraints` 完全相等；
+5. 记录为 schema version 1，且其 `pending[]`、`review_stance` 与 `jurisdiction` 形状可读。
+
+任一字段缺失、路径不可读、形状不闭合或比较不相等，返回
+`REJECT-STALE-REVIEW-CONTEXT`，不进入 R1。旧报告摘要、`review_id`、run/session、成员自报或
+用户的“继续”措辞都不是 context identity，不能代替上述比较。Team 路径没有 context 时返回
+`REJECT-REVIEW-CONTEXT-REQUIRED`，不得伪造默认 context。独立用户会话可以继续做事实提取与
+澄清，但不能伪造 Team context 或输出依赖 context 的方向性/法域建议。
+
+`review_context` 是 Lead 的输出范围声明，不是文件、工具、Delegate、签署、代表权、合同方身份、
+法律适用或 Human Gate 授权。`review_stance.review_subject_label` 只是用户声明的审查视角；
+`jurisdiction.candidate_basis` 只是已经读取并 pin 的审查基准，均不是最终法律认定。
+
+在写入 `sanitized-input.yaml`、评分、生成 `scorecard.yaml` 或任何业务成果前，检查唯一
+`jurisdiction.candidate_basis.pack.status`，或 `jurisdiction.status: conflicting` 内每个
+`candidate_bases[].pack.status`。任一为 `not_prechecked` 时，原样保留
+`PEND-JURISDICTION-PACK-PREFLIGHT` 与既有 `HG-02`（如有），只返回失败诊断
+`REJECT-UNPRECHECKED-REVIEW-CONTEXT`。不得自行 `Read` 规则包/规则文件、预检、pin 或择一候选
+补救；不得写成功评分回执、报告、交接或任何业务成果。`not_issued_pack_preflight_pending` 是 Lead
+受限 O0 的拒绝边界，不是评分阶段可继续消费的普通 constraint。
+
+将已核对记录原样写入 `sanitized-input.yaml` 的 `review_context` 元数据（不复制任何上游推理）。
+在 scorecard、report 与最终回执回显以下闭合对象；`actual_output_constraints` 必须是本次实际遵守的
+同一 constraints，而不是成员自行收窄/放宽后的声明：
+
+```yaml
+review_context_handoff:
+  review_context_path: /abs/lead/review-context.yaml
+  review_context_case_id: case-example
+  review_context_revision: 2
+  review_context_current_manifest:
+    status: available
+    digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  review_context_output_constraints:
+    factual_extraction: allowed
+    directional_risk_advice: allowed
+    redline_or_negotiation_advice: allowed
+    jurisdiction_substantive_conclusion: allowed
+review_context_echo:
+  case_id: case-example
+  revision: 2
+  current_manifest:
+    status: available
+    digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  actual_output_constraints:
+    factual_extraction: allowed
+    directional_risk_advice: allowed
+    redline_or_negotiation_advice: allowed
+    jurisdiction_substantive_conclusion: allowed
+```
+
+| Context 状态 | 仍可输出 | 必须抑制并保留 |
+|---|---|---|
+| `review_stance.status: missing` | 原文事实、四态台账、保留 `PEND-REVIEW-STANCE-REQUIRED`（`required_from: user`）与澄清请求 | 方向性风险、redline、谈判及行动建议 |
+| `jurisdiction.status: undetermined` | 原文事实、四态台账、保留 `PEND-JURISDICTION-BASIS-REQUIRED`（`required_from: user`）与澄清请求 | 不得默认选法域/规则包或输出法域实体结论 |
+| `jurisdiction.status: conflicting` | 原文事实、四态台账、全部候选和 `HG-02`（`required_from: user`） | 法域实体结论；不得择一默认 |
+| 任一候选 `pack.status: not_prechecked` | 仅失败诊断 `REJECT-UNPRECHECKED-REVIEW-CONTEXT`，保留 `PEND-JURISDICTION-PACK-PREFLIGHT` 与已有 `HG-02` | 不得生成评分、报告、成功回执或业务成果；不得自行预检/读取规则包 |
+| candidate pack `unavailable` | 原文事实、`RULE_SOURCE_UNAVAILABLE` pending（`required_from: lead`） | 法域实体结论；不得回退到另一规则包 |
+
+具体地，`not_issued_missing_review_stance` 只能抑制方向性风险、redline 与谈判建议；
+`not_issued_missing_jurisdiction`、`not_issued_hg_02_conflict` 与
+`not_issued_rule_source_unavailable` 只能抑制法域实体结论。`not_issued_pack_preflight_pending`
+按前述规则拒绝本次消费，不能降格为普通抑制后继续评分。其余这些状态都不能被补写成“合规”、
+“适用某法”或任何默认方向性建议。
+
+用户补充后，只有 Lead 写入**同一 case binding 与 current manifest**的更高 revision，并重新以五个
+handoff 字段交付时，才可消费新 context。旧 revision 的报告和回执保留为历史，不能 overwrite 当前
+产物，更不能清除既有 `human_gates`、`pending_settlement`、`human-gate-receipt.yaml` 或
+`release_decision: blocked_by_human_gate`。
+
 ### R0.1 契约必备字段核对
 
 上游交接块（见输入治理技能「结构化交接」一节）必须齐备下列顶层字段，缺一即拒收：
@@ -112,6 +192,8 @@ metadata:
 
 对交接块与各产物做一次夹带扫描（`Grep`，中英各一轮）：
 
+这两轮含 `|` 的扫描传 `pattern` 加 `is_regex: true`；R2 的 exact quote 复核仍传 `pattern` 加 `is_regex: false`，不得混用。
+
 ```
 我认为|我判断|因此|因为|所以|综合|鉴于|由此|倾向于|考虑到|整体来看|大体上|推测|应该是
 I think|I believe|therefore|because|hence|overall|in my judgment|likely|presumably
@@ -122,7 +204,7 @@ I think|I believe|therefore|because|hence|overall|in my judgment|likely|presumab
 **拒收动作**（不是"收下但不看"）：
 
 1. 不进入 R1，不做任何实质分析。
-2. 用 `Delegate`（`mode: sync`）向来源发回：
+2. 以本次同步调用的 **return** 返回给 Lead：不得调用 `Delegate` 或 `SendMessage` 另起一次调度。
 
 ```yaml
 input_rejection:
@@ -143,7 +225,7 @@ input_rejection:
 
 ### R0.4 落盘净化产物
 
-写到 `<有效工作目录>/contract-review/<contract_object_id>/review/<review_id>/sanitized-input.yaml`：
+团队同步路径写到 `<实际确认的 team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/sanitized-input.yaml`：先 `Read` `review_context_path` 并逐项比对公开五字段，只有 `review_context_case_id` 与 context `case_binding.case_id` 精确相等时才逐字使用该值作为 `case_id`；不得从 task、intentId、路径、旧回执或成员文本推导。`review_id` 只能取本次真实 `GenerateUUID`；`lead_workspace` 与 `canonical_artifact_root` 只可读取来源，绝不构成输出授权。独立非 Team 路径才使用本 Agent 已确认的 workspace。
 
 ```yaml
 sanitized_input:
@@ -154,6 +236,9 @@ sanitized_input:
   confirmed: [...]                              # 原样透传
   pending: [...]                                # 原样透传，一条不删
   scope: {...}                                  # 含 frozen_baseline / consistency_conclusion_allowed
+  review_context:                               # 仅已按 R0.0 精确核对时写入；否则省略
+    path: /abs/lead/review-context.yaml
+    echo: {...}                                 # 只含 case_id/revision/current_manifest/actual_output_constraints
   artifacts:                                    # 绝对路径
     source_documents: [/abs/.../C06a-saas-v1.md, /abs/.../C06b-saas-v2.md]
     clause_table: /abs/.../clauses.yaml
@@ -182,6 +267,8 @@ sanitized_input:
 4. 锁定**适用标尺集**（见 R4 · D2 标尺表）与**法域规则包**（`rule_id` + 版本，来自法域报告，不得凭记忆补）。
 5. 把 `pending[]` 逐条登记为待兑现项。`must_escalate: true` 的每一条在最终报告里必须有明确落点
    （成为 `FND-*`、成为 `GATE-*`、或被显式判为不成立并说明理由）。**不得消失、不得被合并稀释。**
+6. R0.0 已核对 context 时，先把其全部 typed `pending[]` 一并登记。`not_issued_*` 是输出抑制，
+   不是可由评分、模型记忆或旧摘要填补的事实；`HG-02` 与既有 Human Gate 均须保留。
 
 ---
 
@@ -494,7 +581,7 @@ total = floor( 0.20·D1 + 0.25·D2 + 0.20·D3 + 0.15·D4 + 0.20·D5 )
 - 只在**证据侧**退回（某维 `unlocatable` 过多、必查项大面积 `not_covered`），
   不因**结论侧**分歧退回——结论分歧进 `DIV-*` 由人裁决，不是让上游改口。
 - **每维最多退回一次**。第二次仍不合格，不再退回，直接判 `TIER-4-HUMAN-LED` 并写明升级理由。
-- 用 `Delegate`（`mode: sync`），只发失败编码 + 需补字段 + 部件与页码范围。
+- 只以本次同步调用的 **return** 发出失败编码、需补字段、部件与页码范围；不得调用 `Delegate` 或 `SendMessage`，由 Lead 按其可信 binding 与返工上限决定是否续跑。
   **不含你的判断与倾向**——否则第二轮就是照着你的答案抄的，不再是独立产出。
 
 ```yaml
@@ -529,18 +616,18 @@ rerun_request:
 
 在调用**第一个** `AskUserQuestion` 之前，必须完成以下顺序：
 
-1. 把完整的 `scorecard.yaml` 按 R7 写入 lead canonical 根，并立即完整 `Read` 回读；其中
+1. 把完整的 `scorecard.yaml` 按 R7 写入本次实际确认 team effective cwd 的 member-owned artifact 子树，并立即完整 `Read` 回读；其中
    `human_gates[*].status` 必须是 `pending`，`release_decision` 必须是
    `blocked_by_human_gate`，不得写成 `released_to_legal`。
 2. 按 `report-composition` 写出完整 `report.md`，至少包含审前/审中/审后三段、全部发现、
    每个 `GATE-*` 的四元组、`pending_settlement`、证据索引和“不是放行”的阻断声明；写入后立即
-   `Read` 完整回读。报告路径必须位于 lead canonical 根，不能写成员 workspace。
+   `Read` 完整回读。报告路径也必须位于同一 member-owned artifact 子树；Lead canonical 根只能读取，不能作为成员输出位置。
 3. 写出并回读 `human-gate-receipt.yaml`，字段必须包括 `review_id`、`report_path`、
    `scorecard_path`、`human_gates`、`release_decision: blocked_by_human_gate`、
    `status: waiting_for_human`、`do_not_pass` 和 `source_artifacts`。这是人工输入尚未返回时的
    可恢复事实源，不能用口头消息替代。
 4. 任一文件写入、回读、路径边界或 YAML 结构检查失败，必须返回
-   `REJECT-HUMAN-GATE-PREFLIGHT` 并停止提问；禁止先问再修，禁止把文件写到成员 workspace。
+   `REJECT-HUMAN-GATE-PREFLIGHT` 并停止提问；禁止先问再修，禁止写到 Lead canonical 根、其他成员 workspace 或猜测的目录。
 5. 只有三个文件全部回读通过后，才可逐个调用 `AskUserQuestion`。真人未确认、run 被停止或问题
    超时均保持 `pending`；不得把沉默解释成同意。收到答案后再更新同一 review 目录的回执和报告，
    并在最终回执中保留问题原文、确认人、时间和决定。
@@ -569,14 +656,14 @@ rerun_request:
 
 ## R7 出具评分回执
 
-落盘到组长交接中指定的案件 canonical 工作区 `<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/scorecard.yaml`。成员自己的工作目录只能用于临时读取；不得把 scorecard 或最终报告写到成员 workspace 后再要求组长自行寻找或复制。
+团队同步时落盘到本次 `Ls` 实际确认的 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/scorecard.yaml`。只有已 `Read` 并逐项比对通过的 `review_context_case_id = context.case_binding.case_id` 才可逐字作为 `case_id`；不得从 task、intentId、路径、旧回执或成员文本推导，`review_id` 只用本次真实 `GenerateUUID`；成员拥有该唯一新目录，旧版本不覆盖。`lead_workspace`、`canonical_artifact_root` 仅为可读输入来源，不能指定输出路径。Lead 只消费本次最终同步 return 原样给出的绝对路径，既不写入、改名、复制，也不从路径、旧回执或摘要猜测产物。独立非 Team 路径才使用本 Agent 已确认的 workspace。
 旧版本保留不覆盖。
 
 ### 产物完整性闸门（必须在任何 handoff 之前执行）
 
 `scorecard.yaml` 是审计事实源，写坏一个字符就等于没有回执。写入后必须立刻用 `Read` 从磁盘重新读取**完整文件**，再逐项检查：
 
-写入前先用 `Ls` 确认 canonical 根和目标目录；首写必须是目录下的具体文件。写入后回读并确认规范化绝对路径按完整路径段仍位于 `<lead_workspace>/contract-review/` 内；目录冲突、嵌套失败、链接边界无法确认或根外路径统一返回 `REJECT-OUTPUT-DIR`，不得回退到成员 workspace、相对路径或别名路径。
+写入前先用 `Ls` 确认 team effective cwd；首写必须是 member-owned artifact 子树中的具体文件，且不要求新父目录预先存在。写入后回读并确认规范化绝对路径按完整路径段仍位于 `<team effective cwd>/members/review-reporter/<case_id>/<review_id>/artifact/` 内；目录冲突、嵌套失败、链接边界无法确认、根外路径或普通 `Write` 失败统一 return `REJECT-OUTPUT-DIR`，不得回退到 Lead canonical 根、其他成员 workspace、相对路径或别名路径。
 
 1. 顶层 `review_scorecard`、`object`、`dimensions`、`findings`、`actions`、`human_gates`、`release_decision`、`pending_settlement`、`reverify_ledger`、`unverified_ledger`、`divergence_ledger` 与 `independence_attestation` 均存在；`release_decision` 必须是允许值。
 2. 对 `reverify_ledger`、`unverified_ledger`、`divergence_ledger`、`human_gates` 和 `pending_settlement` 一律使用**块映射**（每个字段独占一行），禁止嵌套 inline map。证据中的 `{`、`}`、`[`、`]`、`:`、换行或前导 `#` 必须使用单引号包住；不要在行尾重复 `}` 或 `]`。
@@ -629,6 +716,12 @@ review_scorecard:
   human_gates:
     - {id: GATE-LIABILITY, status: pending, question: ..., evidence: {...}}
   release_decision: blocked_by_human_gate   # released_to_legal | blocked_by_human_gate | returned_for_rework
+
+  review_context_echo:                       # context-bound run required; otherwise omit
+    case_id: case-example
+    revision: 2
+    current_manifest: {status: available, digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+    actual_output_constraints: {factual_extraction: allowed, directional_risk_advice: allowed, redline_or_negotiation_advice: allowed, jurisdiction_substantive_conclusion: allowed}
 
   pending_settlement:              # 上游 pending[] 的兑现台账，一条不少
     - {id: PEND-01, must_escalate: true, landed_as: [FND-001, FND-002, GATE-LIABILITY]}
