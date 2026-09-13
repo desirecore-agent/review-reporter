@@ -192,6 +192,8 @@ handoff 字段交付时，才可消费新 context。旧 revision 的报告和回
 
 对交接块与各产物做一次夹带扫描（`Grep`，中英各一轮）：
 
+这两轮含 `|` 的扫描传 `pattern` 加 `is_regex: true`；R2 的 exact quote 复核仍传 `pattern` 加 `is_regex: false`，不得混用。
+
 ```
 我认为|我判断|因此|因为|所以|综合|鉴于|由此|倾向于|考虑到|整体来看|大体上|推测|应该是
 I think|I believe|therefore|because|hence|overall|in my judgment|likely|presumably
