@@ -1,7 +1,7 @@
 ---
 name: report-composition
 description: >-
-  合同审查最终报告的排版与证据索引。把 review-scoring 的评分回执渲染成条款级 Markdown 报告：
+  合同审查最终报告的排版、证据索引与修订版 Word 交付。把 review-scoring 的评分回执渲染成条款级 Markdown 报告，必要时从原文生成带真实修订标记的 DOCX：
   审前 / 审中 / 审后三段式交付，每条发现强制四元组（条款编号 + 证据页码 + 结论等级 + 对应动作），
   行动清单带谈判优先级与落点，法务签核点单列，版本对比标注风险变化方向，末尾附证据索引与独立性声明。
   用户提到出报告、审查报告、条款级报告、证据索引、行动清单、待办清单、签核点清单、
@@ -9,7 +9,7 @@ description: >-
   Use to render the final contract review report: three-phase delivery, clause-level findings with
   mandatory four-part conclusions, an evidence index traceable to page and quote, a prioritized
   action list, human sign-off gates, and an independence attestation.
-version: 1.0.3
+version: 1.0.4
 type: procedural
 risk_level: low
 status: enabled
@@ -27,10 +27,12 @@ requires:
     - Write
     - Edit
     - MathCalc
+    - ExportDocument
+    - ExportRedlineDocument
 metadata:
   author: DesireCore
-  version: 1.0.3
-  updated_at: '2026-09-07'
+  version: 1.0.4
+  updated_at: '2026-09-15'
 ---
 
 # 复核报告排版与证据索引
@@ -337,13 +339,29 @@ metadata:
 
 ## 交付与回执
 
+### 修订版 Word 交付
+
+当交接载荷包含可定位的原文和需要落地的具体谈判改写时，报告官必须在写完并回读 `report.md` 后，使用
+`ExportRedlineDocument` 从**原始合同文件**创建一个新 DOCX。每项修订都必须以原文中恰好出现一次的连续
+`anchor` 和对应 `replacement` 提供；不得把总结性建议伪装成修订，也不得修改原文件。输出路径固定为：
+
+```
+<lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/<source-basename>.redline.docx
+```
+
+调用失败、anchor 缺失/重复、修订跨段或路径无法确认时，必须保留 Markdown 报告并在回执中写明
+`redline_docx_status: failed` 及可操作的原因；不得手写伪造 DOCX 或声称已生成。成功时回读目录确认文件存在，
+并在结构化回执中返回 `redline_docx_path`、`redline_docx_status: created` 和 `redline_source_path`。
+只有确有需要把 Markdown 报告本身转成普通 Word/PDF 时才调用 `ExportDocument`；它不替代带修订的 DOCX。
+
 ### 落盘
 
 ```
 <lead_workspace>/contract-review/<contract_object_id>/review/<review_id>/
 ├── sanitized-input.yaml     # R0 净化产物（review-scoring 已写）
 ├── scorecard.yaml           # 评分回执（review-scoring 已写）
-└── report.md                # 本技能产物
+├── report.md                # 本技能产物
+└── <source-basename>.redline.docx  # 有明确原文替换时必须生成的修订版 Word
 ```
 
 三份文件互相引用**绝对路径**。旧 `review_id` 目录**保留不覆盖**——规则更新后要靠它们做
@@ -365,6 +383,9 @@ review_result:
   release_decision: blocked_by_human_gate
   open_gates: [GATE-LIABILITY]
   report_path: /abs/.../report.md
+  redline_docx_status: created
+  redline_docx_path: /abs/.../contract.redline.docx
+  redline_source_path: /abs/.../contract.md
   scorecard_path: /abs/.../scorecard.yaml
   do_not_pass:
     - 对话历史
