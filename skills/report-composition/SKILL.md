@@ -19,7 +19,7 @@ metadata:
 
 ## 路径
 
-任务正文必须逐条给出具体文件绝对路径的 `read_allowlist` 与 `write_allowlist`。只读列出的 O4 回执、评分规则资源、适用法域规则文件和原件；只写列出的 `scorecard.json`、`report.md`、`pending-receipt.json`、导出尝试回执；真实导出能力可用时，`write_allowlist` 还必须逐项列明目标 DOCX 的完整绝对路径。未列路径一律禁止，禁止 `Ls`、`Glob`、无路径 `Grep` 和目录枚举。所有产物使用 Lead 本次明确列出的 canonical 路径，写后逐一完整回读并使用工具实际返回路径互相引用。不得自行另建根，也不得让 Lead 猜测成员目录。`memoryScope:none` 不提供文件级强制隔离；当前平台缺少 per-call 文件能力沙箱，须在回执列为未验平台欠账。
+任务正文必须逐条给出具体文件绝对路径的 `read_allowlist` 与 `write_allowlist`。只读列出的 O4 回执、评分规则资源、适用法域规则文件和原件；固定写入 `<canonical_artifact_root>/report-delivery/scorecard.json`、`<canonical_artifact_root>/report-delivery/report.md`、`<canonical_artifact_root>/report-delivery/pending-receipt.json`、`<canonical_artifact_root>/report-delivery/export-attempts.json`，且四个完整路径必须逐项列在 write_allowlist；真实导出能力可用时，`write_allowlist` 还必须逐项列明目标 DOCX 的完整绝对路径。未列路径一律禁止，禁止 `Ls`、`Glob`、无路径 `Grep` 和目录枚举。所有产物使用 Lead 本次明确列出的 canonical 路径，写后逐一完整回读并使用工具实际返回路径互相引用。不得自行另建根，也不得让 Lead 猜测成员目录。`memoryScope:none` 不提供文件级强制隔离；当前平台缺少 per-call 文件能力沙箱，须在回执列为未验平台欠账。
 
 ## Human Gate
 

@@ -31,4 +31,4 @@ metadata:
 
 候选结果只有前三态。按预定清单主动补漏得到的事实不属于任何输入候选的状态，必须放进独立 `additional[]`，记录对应 check id 与证据；`additional: []` 与计数 0 合法，不为凑数编造。
 
-只向 `write_allowlist` 中唯一列出的 O4 回执路径写入 `independent-verification-receipt`。结构包含 `candidate_results[]`（每个输入候选恰好一项，`status` 仅 `confirmed/refuted/unlocatable`）、独立 `additional[]`、`counts: {confirmed, refuted, unlocatable, additional}`、对象/范围、输入净化结论、清单逐项覆盖、R7/R9 各自状态和未覆盖原因。写后按同一路径完整回读；解析失败或 `valid:false` 时保留失败产物并停止，不得交给 O5。O4 不评分、不定严重度、不写建议、不问业务批准、不导出 DOCX。
+只向 `write_allowlist` 中唯一列出的 `<canonical_artifact_root>/independent-verification/<verification_id>.receipt.json` 写入 `independent-verification-receipt`。结构包含 `candidate_results[]`（每个非空输入候选 id 恰好一项，`status` 仅 `confirmed/refuted/unlocatable`）、独立 `additional[]`、`counts: {confirmed, refuted, unlocatable, additional}`、对象/范围、输入净化结论、清单逐项覆盖、R7/R9 各自状态和未覆盖原因。confirmed/refuted 必须含非空原文 quote 与来源定位；unlocatable 必须含非空检索文件/页段/关键词范围及原因。additional 的 id/check id/原文证据均非空，id 不重复且不得与候选重合。数组中的 null 或畸形项一律失败关闭。写后按同一路径完整回读；解析失败或 `valid:false` 时保留失败产物并停止，不得交给 O5。O4 不评分、不定严重度、不写建议、不问业务批准、不导出 DOCX。

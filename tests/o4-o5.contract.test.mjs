@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { validateO4EvidenceRecord, validateReporterInvocationEvidence, validateO5EvidenceRecord } from './support/reporter-evidence-record.mjs'
 
 const root = new URL('..', import.meta.url)
 const read = (path) => readFile(new URL(path, root), 'utf8')
+
+test('evidence helper is test support only and does not claim runtime enforcement', async () => {
+  assert.equal(await readFile(new URL('support/reporter-evidence-record.mjs', import.meta.url), 'utf8').then((text) => text.includes('validateO4EvidenceRecord')), true)
+  await assert.rejects(readFile(new URL('../lib/reporter-contract.mjs', import.meta.url), 'utf8'))
+})
 
 test('agent declares the independent verification entry without changing wait policy', async () => {
   const agent = JSON.parse(await read('agent.json'))
@@ -110,4 +116,42 @@ test('DOCX evidence uses only the exact allowed output path, never directory enu
 test('nonexistent redline capability is not statically advertised', async () => {
   const agent = JSON.parse(await read('agent.json'))
   assert.equal(agent.tool_permissions.allowed.includes('ExportRedlineDocument'), false)
+})
+
+test('test-only O4 evidence normalizer fails closed and enforces substantive evidence', () => {
+  const receipt = {
+    valid: true, candidate_results: [
+      { id: 'C-1', status: 'confirmed', evidence: { quote: '原文一', source: '/source/a#p1' } },
+      { id: 'C-2', status: 'refuted', evidence: { quote: '原文二', source: '/source/a#p2' } },
+      { id: 'C-3', status: 'unlocatable', searched: ['/source/a:1-100 / 关键词'], reason: '全文检索未定位' },
+    ], additional: [{ id: 'A-1', check_id: 'CHECK-7', evidence: { quote: '原文八', source: '/source/a#p8' } }],
+    counts: { confirmed: 1, refuted: 1, unlocatable: 1, additional: 1 },
+  }
+  assert.deepEqual(validateO4EvidenceRecord(receipt, ['C-1', 'C-2', 'C-3']), { valid: true })
+  for (const bad of [
+    { ...receipt, candidate_results: [null] },
+    { ...receipt, candidate_results: [{ id: 'C-1', status: 'confirmed' }] },
+    { ...receipt, additional: [{ id: '', check_id: 'CHECK-7', evidence: { quote: 'x', source: 'y' } }] },
+    { ...receipt, additional: [{ id: 'A-1', check_id: 'CHECK-7', evidence: { quote: 'x', source: 'y' } }, { id: 'A-1', check_id: 'CHECK-8', evidence: { quote: 'z', source: 'q' } }] },
+    { ...receipt, additional: [{ id: 'C-1', check_id: 'CHECK-7', evidence: { quote: 'x', source: 'y' } }] },
+  ]) assert.equal(validateO4EvidenceRecord(bad, ['C-1', 'C-2', 'C-3']).valid, false)
+})
+
+test('same reporter identity still requires two isolated invocations and explicit file allowlists', () => {
+  const base = { target: 'review-reporter', mode: 'sync', contextMode: 'isolated', childContext: { memoryScope: 'none' } }
+  const o4 = { ...base, stage: 'O4', invocationId: 'INV-4', intentId: 'C:o4', read_allowlist: ['/source/a.md'], write_allowlist: ['/authorized/C/O/V/R/independent-verification/o4-receipt.json'] }
+  const o5 = { ...base, stage: 'O5', invocationId: 'INV-5', intentId: 'C:o5', read_allowlist: ['/authorized/C/O/V/R/independent-verification/o4-receipt.json'], write_allowlist: ['/authorized/C/O/V/R/report-delivery/report.md'] }
+  const observed = [...o4.read_allowlist, ...o4.write_allowlist, ...o5.write_allowlist]
+  assert.deepEqual(validateReporterInvocationEvidence(o4, o5, observed), { valid: true })
+  assert.equal(validateReporterInvocationEvidence({ ...o4, childContext: undefined, memoryScope: 'none' }, o5, observed).valid, false)
+  assert.equal(validateReporterInvocationEvidence(o4, { ...o5, invocationId: 'INV-4' }, observed).valid, false)
+  assert.equal(validateReporterInvocationEvidence({ ...o4, read_allowlist: ['/source/release.v1'] }, o5, observed).valid, false)
+  assert.equal(validateReporterInvocationEvidence({ ...o4, read_allowlist: ['/source/LICENSE'] }, o5, [...observed, '/source/LICENSE']).valid, true)
+  assert.equal(validateReporterInvocationEvidence({ ...o4, read_allowlist: ['/source/dir.with.dot'] }, o5, observed).valid, false)
+})
+
+test('pending business decisions do not suppress O5 report delivery', () => {
+  const path = '/authorized/C/O/V/R/report-delivery/report.md'
+  assert.deepEqual(validateO5EvidenceRecord({ report_status: 'delivered', report_path: path, pending: [{ id: 'HG-1' }], complete_five_dimension_score: false }, [path]), { valid: true })
+  assert.equal(validateO5EvidenceRecord({ report_status: 'delivered', report_path: path, pending: [], complete_five_dimension_score: true }, []).valid, false)
 })
