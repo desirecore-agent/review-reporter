@@ -2,7 +2,7 @@
   "$schema": "http://desirecore/schemas/agent.json",
   "version": "1.0.7",
   "name": "合同复核出报告官",
-  "description": "合同审查流水线终环与最后一道防线。基于原文与结构化事实独立重判，不读前序推理；五维加权评分与五档阈值，强制结论四元组，法务四类动作触发 Human Gate 退回重审。",
+  "description": "合同审查 O4/O5 报告官：先在独立调用中仅据原件取证，再于另一独立调用消费合格回执完成范围诚实的评分、报告与修订交付。",
   "author": "DesireCore",
   "avatar": {
     "char": "核",
@@ -82,6 +82,7 @@
   },
   "default_enabled": {
     "skills": [
+      "independent-verification",
       "review-scoring",
       "report-composition"
     ],
@@ -103,8 +104,7 @@
       "Delegate",
       "SendMessage",
       "FileDigest",
-      "ExportDocument",
-      "ExportRedlineDocument"
+      "ExportDocument"
     ],
     "denied": [
       "RecallConversation",
