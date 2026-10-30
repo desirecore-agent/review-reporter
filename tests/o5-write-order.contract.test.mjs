@@ -108,10 +108,14 @@ test('scoring skill forbids look-ahead and scopes direction caps to applicable c
 test('D3 在中国大陆范围必须计分，D1 缺失扣分只用于 absent', async () => {
   const skill = await read('skills/review-scoring/SKILL.md')
   assert.match(skill, /中国大陆范围（含法域待定）且 CN 规则来源完整时 D3 必须计分，不得因 O4 回执里没有规则级事实就记 `not_covered`/)
-  assert.match(skill, /没有对应 O4 事实的规则不扣分，记入 D3 的 `rule_gaps`/)
+  assert.match(skill, /其余规则没有对应 O4 事实，不扣分，也不逐条列为欠账/)
+  assert.doesNotMatch(skill, /记入 D3 的 `rule_gaps`/)
   // C01 标准答案把违约救济、宽限期、便利终止等列为「条款存在」禁报项：存在的条款不得按缺失扣分
   assert.match(skill, /D1 的 `substantive_deductions` 只在该项判为 `absent`（检索后确无该类条款）时扣/)
-  assert.match(skill, /`present_incomplete`）不按缺失扣 D1，要素缺口作为风险发现按严重度计入 D2，同一事实不在两维重复扣分/)
+  // 要素缺口：O5 拿不到严重度来源，只有落在 D2 benchmarks id 上才计分，其余按第 4 步不扣分、不类推
+  assert.match(skill, /`present_incomplete`）不扣 D1；只有该缺口正好落在 D2 `benchmarks` 的某个 id 上时，才按该 id 自带的 severity 计入 D2/)
+  assert.match(skill, /其余不扣分、按第 4 步记入 D2 的 `rule_gaps`，可在 `actions` 里给补全建议，不作为风险发现输出/)
+  assert.doesNotMatch(skill, /要素缺口作为风险发现按严重度计入 D2/)
   const rules = JSON.parse(await read('resources/scoring-rules-cn-v1.0.3.json'))
   for (const id of ['breach-remedy', 'grace-period', 'termination-convenience', 'force-majeure']) assert.ok(id in rules.dimensions.D1.substantive_deductions)
 })
