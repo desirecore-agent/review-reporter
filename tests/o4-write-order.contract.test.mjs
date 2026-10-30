@@ -16,6 +16,10 @@ test('O4 回执超限时分段落盘：骨架每个候选一行，逐行 Edit，
   assert.match(part, /回执预计超过约 3000 字时/)
   assert.match(part, /`candidate_results` 每个输入候选各占一行 `\{"id": "<候选 id>", "status": "pending"\}`/)
   assert.match(part, /一次回复核对一个候选/)
+  // 2026-10-30 E 轮：读完原件后一次想完 20 个候选，三次在约 600 秒处被网关切断
+  assert.match(part, /同一次回复里先写上一个候选的结果，再发起下一个候选的检索/)
+  assert.match(part, /读完原件后不在思考里先把全部候选核对一遍/)
+  assert.match(part, /单次回复（思考加输出）超过约 10 分钟也会被网关切断/)
   assert.match(part, /骨架写成后不再用 `Write` 重写整份回执/)
   assert.match(part, /仍有 `"status": "pending"` 的行就回到该候选/)
   assert.match(skill, /全部写完后按同一路径完整回读/)

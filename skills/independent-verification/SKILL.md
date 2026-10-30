@@ -1,7 +1,7 @@
 ---
 name: independent-verification
 description: O4 独立取证入口；在隔离调用中仅据原件验证净化事实候选，并按预定清单补漏。
-version: 1.0.2
+version: 1.0.3
 type: procedural
 risk_level: low
 status: enabled
@@ -9,7 +9,7 @@ requires:
   tools: [Read, Grep, Write, Edit]
 metadata:
   author: DesireCore
-  version: 1.0.2
+  version: 1.0.3
   updated_at: '2026-10-30'
 ---
 
@@ -38,8 +38,8 @@ metadata:
 回执预计超过约 3000 字时（候选多于三四个通常就会超过）不一次写成：
 
 1. 先 `Write` 骨架 JSON：对象/范围、输入净化结论等已知字段写实际值；R7/R9 状态 Lead 已转达的照抄，未转达的先写 `null`，取证后再补；清单逐项覆盖写 `null`；`candidate_results` 每个输入候选各占一行 `{"id": "<候选 id>", "status": "pending"}`；`additional` 写 `[]`；`counts` 写 `null`。
-2. 一次回复核对一个候选：回源取证后，用 `Edit` 把该候选那一行（`old_string` 取 `{"id": "<候选 id>", "status": "pending"}`）换成结果对象，仍写在一行内，行尾逗号保持不变。
+2. 一次回复核对一个候选：回源取证后，用 `Edit` 把该候选那一行（`old_string` 取 `{"id": "<候选 id>", "status": "pending"}`）换成结果对象，仍写在一行内，行尾逗号保持不变。同一次回复里先写上一个候选的结果，再发起下一个候选的检索；读完原件后不在思考里先把全部候选核对一遍，也不预拟各候选的结果对象。
 3. 候选写完后，用 `Edit` 补上仍为 `null` 的 R7/R9 状态与清单逐项覆盖，再填 `additional` 与 `counts`。`additional` 每项一行；超过约 3000 字就分批，后一批以已写最后一项的整行为 `old_string`，换成该行加逗号再加新条目。
 4. 骨架写成后不再用 `Write` 重写整份回执。全部写完再按上文完整回读并校验；仍有 `"status": "pending"` 的行就回到该候选，R7/R9 状态、清单逐项覆盖与 `counts` 仍为 `null` 就回到第 3 步，都不交给 O5。
 
-云端模型的工具参数要整段生成完才发出，生成期间连接没有字节，静默超过 90 秒即被平台判为断流、整次重来；2026-10-30 C 轮 O4 一次写出约 2 万字的回执，静默了 63 秒。
+云端模型的工具参数要整段生成完才发出，生成期间连接没有字节，静默超过 90 秒即被平台判为断流、整次重来；2026-10-30 C 轮 O4 一次写出约 2 万字的回执，静默了 63 秒。单次回复（思考加输出）超过约 10 分钟也会被网关切断、整次重来；同日 E 轮 O4 读完原件后在一次回复里把 20 个候选全部想完，连续三次在约 600 秒处被切断。

@@ -119,3 +119,25 @@ test('D3 在中国大陆范围必须计分，D1 缺失扣分只用于 absent', a
   const rules = JSON.parse(await read('resources/scoring-rules-cn-v1.0.3.json'))
   for (const id of ['breach-remedy', 'grace-period', 'termination-convenience', 'force-majeure']) assert.ok(id in rules.dimensions.D1.substantive_deductions)
 })
+
+// 2026-10-30 E 轮 O5：写骨架前推演五维、D2 来回比较读法，三次在约 600 秒处被切断；
+// FC-17（单价×数量≠合计）先被记成大小写不一致；D4 因 11.1 不在 O4 证据里就按「宽限期起算点不明」扣分；上游页码错误被写成对合同的修改动作
+test('O5 骨架回复不推演、命中按字面、事实问题先查原件、链路证据问题不写成合同动作', async () => {
+  const skill = await read('skills/review-scoring/SKILL.md')
+  assert.match(skill, /读完 O4 回执与评分规则后的下一次回复只做一件事：`Write` 骨架；写骨架之前不推演任何维度、Gate、覆盖或行动的内容/)
+  assert.match(skill, /单次回复（思考加输出）超过约 10 分钟会被网关切断、整次重来/)
+  assert.match(skill, /是否命中只看该 rule code 的 metric、名称或 CN 包规则写明的触发条件字面：字面写到的情形才算覆盖，没写到的不落该项（例如单价×数量与载明合计不符是算术口径差异，不是 `amount-in-words-mismatch` 的「金额大小写不一致」）/)
+  assert.match(skill, /读法取决于原件里是否另有约定（如另一条款是否已写明该期限的起算点）时，那是事实问题，不是读法问题：用固定字符串 `Grep` 查任务列入的原件（可用 `literals` 一次查几种写法；这是核一项事实，不是重做 O4），把查到的条款号与行号写进该维的 `interpretation_note`，按查到的事实判，不为没查过的事实取扣分更多的一种/)
+  assert.match(skill, /`actions` 只写对合同条款或签署流程的动作。O4 记下的上游字段与原件不一致（如上游标错页码）是审查链路自己的证据问题：按对应维的 penalty 计，第 5 步写 `debts` 时列入并注明 O4 已据原件更正、对合同无修改要求；它不是需要行动的发现，不写进 `actions`，D5 也不因它记 `DED-D5-NO-ACTION`/)
+  // 例子里点名的 rule code 必须真实存在，且 metric 与例子说的一致
+  const rules = JSON.parse(await read('resources/scoring-rules-cn-v1.0.3.json'))
+  const b = rules.dimensions.D2.benchmarks
+  const words = (Array.isArray(b) ? b : Object.values(b)).find((x) => x.id === 'amount-in-words-mismatch')
+  assert.equal(words?.metric, '金额大小写不一致')
+  assert.ok('deadline-without-start' in rules.dimensions.D4.substantive_deductions)
+  assert.ok('DED-D1-FIELD-MISMATCH' in rules.dimensions.D1.penalties)
+  assert.ok('DED-D5-NO-ACTION' in rules.dimensions.D5.penalties)
+  // 第 4 步改为 metric、名称或 CN 包触发条件：D3 扣分项只有名称、没有 metric
+  assert.ok('mandatory-rule-violation' in rules.dimensions.D3.substantive_deductions)
+  assert.ok(!('metric' in Object(rules.dimensions.D3.substantive_deductions['mandatory-rule-violation'])))
+})
