@@ -27,7 +27,7 @@ test('scoring skill fixes the scorecard write order and the Edit shape', async (
   assert.match(skill, /不扣分、不类推/)
   assert.match(skill, /与自判 Gate 分列、不合并、不计分/)
   assert.doesNotMatch(skill, /按字面最接近的一条处理/)
-  assert.match(skill, /算 D5 之前，先用一次 `Edit` 把 `actions` 写成/)
+  assert.match(skill, /算 D5 之前，先用 `Edit` 把 `actions` 写成行动建议数组.*首批把 `"actions": null` 换成数组，`old_string` 与 `new_string` 都不含行尾逗号，逗号留在原处/)
   // 单版本省略方向（团队规则 INV-010）：骨架里的 null 保持不动，不写 flat/undetermined/not_applicable
   assert.match(skill, /`risk_direction` 保持骨架里的 `null` 不动/)
   assert.match(skill, /INV-010/)
@@ -46,7 +46,7 @@ test('report skill writes sections in place and appends export history', async (
   const report = await read('skills/report-composition/SKILL.md')
   assert.match(report, /<!-- 待写：节名 -->/)
   assert.match(report, /任务未提供内容/)
-  assert.match(report, /`export-attempts\.json` 已存在时先 `Read`.*追加/s)
+  assert.match(report, /`export-attempts\.json` 每个 attempt 写成一行.*已存在时先 `Read`.*换成该行加逗号再加本次 attempt/s)
   assert.match(report, /四个产出文件（回读/)
 })
 

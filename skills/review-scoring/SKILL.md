@@ -1,7 +1,7 @@
 ---
 name: review-scoring
 description: 在独立的 O5 调用中消费合格 O4 回执，按有来源的固定公式评分并形成范围诚实的行动建议。
-version: 1.2.1
+version: 1.2.2
 type: procedural
 risk_level: low
 status: enabled
@@ -9,7 +9,7 @@ requires:
   tools: [Read, Grep, Write, Edit, MathCalc, AskUserQuestion]
 metadata:
   author: DesireCore
-  version: 1.2.1
+  version: 1.2.2
   updated_at: '2026-10-30'
 ---
 
@@ -45,7 +45,7 @@ metadata:
 
 1. 读完 O4 回执与评分规则后先 `Write` 骨架。身份、范围、O4 回执、评分规则（id、版本、绝对路径、摘要）照实填写；其余顶层键逐行用 `null` 占位：`"risk_direction": null,`、`"comparison_status": null,`、`"human_gate_pending": null,`、`"upstream_pending": null,`、`"coverage": null,`、`"actions": null,`、`"debts": null,`、`"incomplete_statement": null,`、`"total": null,`、`"tier": null,`，最后一行固定为 `"complete_five_dimension_score": null`（不带逗号）；`dimensions` 下 `D1`…`D5` 各占一行，写成 `"D1": {"status": "deferred"},`（`D5` 行不带逗号）。CN 规则包不在骨架前通读，算 D3 时再用 `Grep`（单文件路径）按 rule id 查。骨架写入后不再整份 `Write`：第 5 步之前发现骨架应有而漏写的字段，用一次 `Edit` 在某个已有的 `"key": null,` 行前插入（新行带尾逗号），已写的内容不为措辞重写。
 2. 先据 O4 回执与任务透传项写方向、Gate 与覆盖（每个键一次 `Edit`）：`risk_direction`（单版本保持 `null`，不 Edit）、`comparison_status`、`human_gate_pending`（本次自判的 Gate）、`upstream_pending`（任务透传项原样照列，与自判 Gate 分列、不合并、不计分），以及 `coverage`（七项覆盖状态；任务和 O4 回执都没给的项写 `unknown` 并注明来源缺失）。D2 的方向封顶与 D5 的 Gate 扣分依赖这两项，所以排在五维之前。
-3. 一次回复只算一维：用 `MathCalc` 复算 S/P/C/D，再用 `Edit` 把该维占位换成单行完整对象（首键 `"status"` 写 `scored`/`not_covered`/`not_applicable`，再写 S、P、C、D，命中的 rule code、次数、数值、证据，以及 not_covered/not_applicable 的依据）。`old_string` 与 `new_string` 都只写 `"Dn": {…}` 本身，不含行首缩进、不含行尾逗号；逗号留在原处不动（`D5` 行原本没有逗号，替换后也不加）。D4 命中 `CAP-D4-PAYMENT-UNMAPPED` 时，同一次回复把 `GATE-PAYMENT` 补进 `human_gate_pending`。算 D5 之前，先用一次 `Edit` 把 `actions` 写成行动建议数组（每条含 finding_id、祈使句动作、priority、具体修改落点、签核归属），D5 按这份清单评分，报告的行动清单也只从这里渲染。
+3. 一次回复只算一维：用 `MathCalc` 复算 S/P/C/D，再用 `Edit` 把该维占位换成单行完整对象（首键 `"status"` 写 `scored`/`not_covered`/`not_applicable`，再写 S、P、C、D，命中的 rule code、次数、数值、证据，以及 not_covered/not_applicable 的依据）。证据只写 finding_id 与位置（条款号、页码、行号），不抄长引文，单维对象控制在约 3000 字以内。`old_string` 与 `new_string` 都只写 `"Dn": {…}` 本身，不含行首缩进、不含行尾逗号；逗号留在原处不动（`D5` 行原本没有逗号，替换后也不加）。D4 命中 `CAP-D4-PAYMENT-UNMAPPED` 时，同一次回复把 `GATE-PAYMENT` 补进 `human_gate_pending`。算 D5 之前，先用 `Edit` 把 `actions` 写成行动建议数组（每条一行，含 finding_id、祈使句动作、priority、具体修改落点、签核归属）：首批把 `"actions": null` 换成数组，`old_string` 与 `new_string` 都不含行尾逗号，逗号留在原处；超过约 3000 字就分批，后一批以已写最后一条的整行为 `old_string`，换成该行加逗号再加新条目。D5 按这份清单评分，报告的行动清单也只从这里渲染。
 4. 仅当某条 rule code 已明确覆盖该事实、只是措辞或区间边界有两种读法时，取扣分更多或封顶更低的一种，写一句 `interpretation_note` 后继续，不在思考里反复比较。事实不落在任何 rule code 内时不扣分、不类推，记入该维 `rule_gaps` 并列为欠账（D1 适用性无依据按 not_covered）。
 5. 五维写完后，逐个用 `Edit` 把 `total`、`tier`、`incomplete_statement`、`debts`、`complete_five_dimension_score` 的 `null` 换成值（有维度为 `not_covered` 时 `total`、`tier` 保持 `null`，`complete_five_dimension_score` 写 `false`），不新增键、不整份 `Write`，最后整份回读一次。scorecard 必须声明是否 `complete_five_dimension_score`，列出范围、O4 receipt、规则来源、逐维算式、方向、Human Gate 与欠账。
 6. O5 四个文件路径固定，不按产物 id 分文件：重新委派直接 `Write` 覆盖 `scorecard.json` 与 `report.md`，只有 `export-attempts.json` 保留历史；只有 `DelegateControl` resume 时才先 `Read` 本次 scorecard，从仍为 `deferred` 的维度或仍为 `null` 的键接着做；`comparison_status` 为 `not_applicable` 时 `risk_direction` 的 `null` 是终值，五维都已写出且有维度为 `not_covered` 时 `total`、`tier` 的 `null` 也是终值，都不再处理。
