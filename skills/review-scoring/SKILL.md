@@ -43,10 +43,11 @@ metadata:
 
 `scorecard.json` 按下列固定次序逐步写（即共享规则第三之二第 5 条所说「技能另有固定落盘次序的文件」），不要先在思考里算完五维再一次写整份：
 
-1. 读完 O4 回执与规则来源后先 `Write` 骨架：顶层身份、范围、O4 回执、规则来源（id、版本、绝对路径、摘要）照实填写；`dimensions` 下 `D1`…`D5` 各占一行，写成 `"D1": {"status": "deferred"},`（最后一维不带逗号）；`total`、`tier`、`complete_five_dimension_score` 先写 `null`。
-2. 一次回复只算一维：用 `MathCalc` 复算 S/P/C/D，再用 `Edit` 把该维那一行换成单行完整对象（S、P、C、D，命中的 rule code、次数、数值、证据，以及 not_covered/not_applicable 的依据）。`old_string` 取 `"Dn": {"status": "deferred"}`，在文件内唯一。
-3. 规则没写到的情形，按字面最接近的一条处理，在该维写一句 `interpretation_note` 说明所选读法后继续，不在思考里反复比较备选读法。
-4. 五维写完后再改写 total/tier（或不完整声明）、方向、Human Gate 与欠账，整份回读一次。scorecard 必须声明是否 `complete_five_dimension_score`，列出范围、O4 receipt、规则来源、逐维算式、方向、Human Gate 与欠账。
-5. 被续跑时先 `Read` 本次 scorecard，从仍为 `deferred` 的维度接着算。
+1. 读完 O4 回执与评分规则后先 `Write` 骨架。身份、范围、O4 回执、评分规则（id、版本、绝对路径、摘要）照实填写；其余顶层键逐行用 `null` 占位：`"risk_direction": null,`、`"comparison_status": null,`、`"human_gate_pending": null,`、`"upstream_pending": null,`、`"debts": null,`、`"incomplete_statement": null,`、`"total": null,`、`"tier": null,`，最后一行固定为 `"complete_five_dimension_score": null`（不带逗号）；`dimensions` 下 `D1`…`D5` 各占一行，写成 `"D1": {"status": "deferred"},`（`D5` 行不带逗号）。CN 规则包不在骨架前通读，算 D3 时再用 `Grep`（单文件路径）按 rule id 查。
+2. 先据 O4 回执与任务透传项写方向与 Gate（各一次 `Edit`）：`risk_direction`、`comparison_status`、`human_gate_pending`（本次自判的 Gate），以及 `upstream_pending`（任务透传项原样照列，与自判 Gate 分列、不合并、不计分）。D2 的方向封顶与 D5 的 Gate 扣分依赖这两项，所以排在五维之前。
+3. 一次回复只算一维：用 `MathCalc` 复算 S/P/C/D，再用 `Edit` 把该维占位换成单行完整对象（首键 `"status"` 写 `scored`/`not_covered`/`not_applicable`，再写 S、P、C、D，命中的 rule code、次数、数值、证据，以及 not_covered/not_applicable 的依据）。`old_string` 与 `new_string` 都只写 `"Dn": {…}` 本身，不含行首缩进、不含行尾逗号；逗号留在原处不动（`D5` 行原本没有逗号，替换后也不加）。D4 命中 `CAP-D4-PAYMENT-UNMAPPED` 时，同一次回复把 `GATE-PAYMENT` 补进 `human_gate_pending`。
+4. 仅当某条 rule code 已明确覆盖该事实、只是措辞或区间边界有两种读法时，取扣分更多或封顶更低的一种，写一句 `interpretation_note` 后继续，不在思考里反复比较。事实不落在任何 rule code 内时不扣分、不类推，记入该维 `rule_gaps` 并列为欠账（D1 适用性无依据按 not_covered）。
+5. 五维写完后，逐个用 `Edit` 把 `total`、`tier`、`incomplete_statement`、`debts`、`complete_five_dimension_score` 的 `null` 换成值，不新增键、不整份 `Write`，最后整份回读一次。scorecard 必须声明是否 `complete_five_dimension_score`，列出范围、O4 receipt、规则来源、逐维算式、方向、Human Gate 与欠账。
+6. O5 四个文件路径固定，不按产物 id 分文件：重新委派直接 `Write` 覆盖 `scorecard.json` 与 `report.md`，只有 `export-attempts.json` 保留历史；只有 `DelegateControl` resume 时才先 `Read` 本次 scorecard，从仍为 `deferred` 的维度或仍为 `null` 的键接着做。
 
 scorecard 写完并回读后，再交给 `report-composition`。
