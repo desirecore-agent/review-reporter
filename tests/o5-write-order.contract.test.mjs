@@ -16,7 +16,7 @@ const parses = (text) => { try { JSON.parse(text); return true } catch { return 
 test('scoring skill fixes the scorecard write order and the Edit shape', async () => {
   const skill = await read('skills/review-scoring/SKILL.md')
   assert.match(skill, /tools: \[[^\]]*\bEdit\b/)
-  for (const key of ['risk_direction', 'comparison_status', 'human_gate_pending', 'upstream_pending', 'debts', 'incomplete_statement', 'total', 'tier']) {
+  for (const key of ['risk_direction', 'comparison_status', 'human_gate_pending', 'upstream_pending', 'coverage', 'actions', 'debts', 'incomplete_statement', 'total', 'tier']) {
     assert.match(skill, new RegExp('`"' + key + '": null,`'))
   }
   assert.match(skill, /`"complete_five_dimension_score": null`（不带逗号）/)
@@ -27,6 +27,8 @@ test('scoring skill fixes the scorecard write order and the Edit shape', async (
   assert.match(skill, /不扣分、不类推/)
   assert.match(skill, /与自判 Gate 分列、不合并、不计分/)
   assert.doesNotMatch(skill, /按字面最接近的一条处理/)
+  assert.match(skill, /算 D5 之前，先用一次 `Edit` 把 `actions` 写成/)
+  assert.match(skill, /GATE-PAYMENT` 补进 `human_gate_pending`/)
 })
 
 test('report skill writes sections in place and appends export history', async () => {
@@ -38,7 +40,7 @@ test('report skill writes sections in place and appends export history', async (
 })
 
 test('every intermediate scorecard stays valid JSON when the skill is followed literally', () => {
-  const keys = ['risk_direction', 'comparison_status', 'human_gate_pending', 'upstream_pending', 'debts', 'incomplete_statement', 'total', 'tier']
+  const keys = ['risk_direction', 'comparison_status', 'human_gate_pending', 'upstream_pending', 'coverage', 'actions', 'debts', 'incomplete_statement', 'total', 'tier']
   const dims = ['D1', 'D2', 'D3', 'D4', 'D5']
   let card = [
     '{',
@@ -57,7 +59,10 @@ test('every intermediate scorecard stays valid JSON when the skill is followed l
     ['"comparison_status": null', '"comparison_status": "not_applicable"'],
     ['"human_gate_pending": null', '"human_gate_pending": ["GATE-DISPUTE"]'],
     ['"upstream_pending": null', '"upstream_pending": [{"id": "P-01", "gate": "GATE-PAYMENT"}]'],
-    ...dims.map((d) => [`"${d}": {"status": "deferred"}`, `"${d}": {"status": "scored", "S": 100, "P": 0, "C": 100, "D": 100}`]),
+    ['"coverage": null', '"coverage": {"input-integrity": "covered", "report-and-delivery": "unknown"}'],
+    ...dims.slice(0, 4).map((d) => [`"${d}": {"status": "deferred"}`, `"${d}": {"status": "scored", "S": 100, "P": 0, "C": 100, "D": 100}`]),
+    ['"actions": null', '"actions": [{"finding_id": "V-01", "action": "补充定义", "priority": "P1", "target": "11.3", "owner": "法务"}]'],
+    ...dims.slice(4).map((d) => [`"${d}": {"status": "deferred"}`, `"${d}": {"status": "scored", "S": 100, "P": 0, "C": 100, "D": 100}`]),
     ['"human_gate_pending": ["GATE-DISPUTE"]', '"human_gate_pending": ["GATE-DISPUTE", "GATE-PAYMENT"]'],
     ['"total": null', '"total": 100'],
     ['"tier": null', '"tier": "TIER-1-LEGAL-REVIEW"'],
