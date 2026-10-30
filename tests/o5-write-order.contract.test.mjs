@@ -28,6 +28,9 @@ test('scoring skill fixes the scorecard write order and the Edit shape', async (
   assert.match(skill, /与自判 Gate 分列、不合并、不计分/)
   assert.doesNotMatch(skill, /按字面最接近的一条处理/)
   assert.match(skill, /算 D5 之前，先用一次 `Edit` 把 `actions` 写成/)
+  // 单版本省略方向（团队规则 INV-010）：骨架里的 null 保持不动，不写 flat/undetermined/not_applicable
+  assert.match(skill, /`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010）/)
+  assert.match(skill, /`risk_direction`（单版本保持 `null`，不 Edit）/)
   assert.match(skill, /GATE-PAYMENT` 补进 `human_gate_pending`/)
 })
 
@@ -55,7 +58,6 @@ test('every intermediate scorecard stays valid JSON when the skill is followed l
   ].join('\n')
   assert.ok(parses(card), '骨架必须是合法 JSON')
   const steps = [
-    ['"risk_direction": null', '"risk_direction": "undetermined"'],
     ['"comparison_status": null', '"comparison_status": "not_applicable"'],
     ['"human_gate_pending": null', '"human_gate_pending": ["GATE-DISPUTE"]'],
     ['"upstream_pending": null', '"upstream_pending": [{"id": "P-01", "gate": "GATE-PAYMENT"}]'],
@@ -75,6 +77,9 @@ test('every intermediate scorecard stays valid JSON when the skill is followed l
     assert.ok(parses(card), `替换后必须仍是合法 JSON：${newString}`)
   }
   assert.equal(JSON.parse(card).dimensions.D5.D, 100)
+  // 单版本：comparison_status 为 not_applicable 时方向保持 null
+  assert.equal(JSON.parse(card).comparison_status, 'not_applicable')
+  assert.equal(JSON.parse(card).risk_direction, null)
 })
 
 test('carrying the trailing comma into new_string breaks the scorecard', () => {
