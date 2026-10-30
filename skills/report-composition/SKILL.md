@@ -15,7 +15,7 @@ metadata:
 
 # O5 报告与交付
 
-完整回读 scorecard 后，只渲染其中已有的证据、评分状态和建议；不新增事实、不重做 O4。报告至少包含对象/范围、已证发现、refuted/unlocatable、七项覆盖状态、评分公式及完整性声明、风险方向、R7/R9 分列（R9 未命中时写明未命中，不列欠账）、行动清单、Human Gate pending、适用边界和产物状态。
+完整回读 scorecard 后，只渲染其中已有的证据、评分状态和建议；不新增事实、不重做 O4。报告至少包含对象/范围、已证发现、refuted/unlocatable、七项覆盖状态、评分公式及完整性声明、风险方向（单版本写「比较不适用，不给方向」）、R7/R9 分列（R9 未命中时写明未命中，不列欠账）、行动清单、Human Gate pending、适用边界和产物状态。
 
 `report.md` 按共享规则第三之二第 5 条逐节落盘：先 `Write` 骨架，列出全部章节标题，每节下一行写 `<!-- 待写：节名 -->`；一次回复写一节，用 `Edit` 把该节占位换成正文。`pending-receipt.json` 交付时一次写成。`export-attempts.json` 已存在时先 `Read`，把本次 attempt 追加到数组末尾后整份 `Write` 一次（不存在视为空数组），不删改历史 attempt。
 

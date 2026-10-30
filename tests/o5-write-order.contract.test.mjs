@@ -29,8 +29,15 @@ test('scoring skill fixes the scorecard write order and the Edit shape', async (
   assert.doesNotMatch(skill, /按字面最接近的一条处理/)
   assert.match(skill, /算 D5 之前，先用一次 `Edit` 把 `actions` 写成/)
   // 单版本省略方向（团队规则 INV-010）：骨架里的 null 保持不动，不写 flat/undetermined/not_applicable
-  assert.match(skill, /`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010）/)
+  assert.match(skill, /`risk_direction` 保持骨架里的 `null` 不动/)
+  assert.match(skill, /INV-010/)
   assert.match(skill, /`risk_direction`（单版本保持 `null`，不 Edit）/)
+  // 续跑：单版本方向与不全时的总分档位的 null 都是终值，不能被当成未完成
+  assert.match(skill, /`comparison_status` 为 `not_applicable` 时 `risk_direction` 的 `null` 是终值/)
+  assert.match(skill, /五维不全时 `total`、`tier` 保持 `null`/)
+  assert.match(skill, /`comparison_status` 即团队规则的 `comparison_applicability`/)
+  const composition = await read('skills/report-composition/SKILL.md')
+  assert.match(composition, /单版本写「比较不适用，不给方向」/)
   assert.match(skill, /GATE-PAYMENT` 补进 `human_gate_pending`/)
 })
 
