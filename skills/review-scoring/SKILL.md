@@ -33,7 +33,7 @@ metadata:
 
 ## 方向与范围
 
-`risk_direction` 只能是 `up/down/flat/undetermined`。单版本且未请求比较基线时，`comparison_status` 写 `not_applicable`，`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010），不写 flat、undetermined 或 not_applicable；已请求比较但范围或 digest 不足时 `comparison_status` 写 `applicable`、`risk_direction` 写 `undetermined`。比较范围不全或 digest 不可用时全局 `undetermined`；可以另述已证局部 up/down，但不能把全局写 flat。R7（附件正文未交）与 R9（权威清单不完整）分列；R9 只按 O4 回执的状态照录，`not_hit` 时写未命中，不列欠账、不进 pending。
+`risk_direction` 只能是 `up/down/flat/undetermined`。单版本且未请求比较基线时，`comparison_status` 写 `not_applicable`，`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010），不写 flat、undetermined 或 not_applicable；已请求比较但范围或 digest 不足时 `comparison_status` 写 `applicable`、`risk_direction` 写 `undetermined`。方向类封顶只在比较适用时才可能命中：单版本不触发 `CAP-D2-DIRECTION-UNDETERMINED` 与 `CAP-D2-WRONG-DIRECTION`。比较范围不全或 digest 不可用时全局 `undetermined`；可以另述已证局部 up/down，但不能把全局写 flat。R7（附件正文未交）与 R9（权威清单不完整）分列；R9 只按 O4 回执的状态照录，`not_hit` 时写未命中，不列欠账、不进 pending。
 
 ## Human Gate
 
@@ -41,7 +41,7 @@ metadata:
 
 ## 落盘次序
 
-`scorecard.json` 按下列固定次序逐步写（即共享规则第三之二第 5 条所说「技能另有固定落盘次序的文件」），不要先在思考里算完五维再一次写整份：
+`scorecard.json` 按下列固定次序逐步写（即共享规则第三之二第 5 条所说「技能另有固定落盘次序的文件」），不要先在思考里算完五维再一次写整份。每次回复只想当前这一步：写方向、Gate、覆盖时不推演任何维度的扣分与封顶；算某一维时不推演其他维度。后面要用到的事实，到那一步再回读 scorecard 与 O4 回执。
 
 1. 读完 O4 回执与评分规则后先 `Write` 骨架。身份、范围、O4 回执、评分规则（id、版本、绝对路径、摘要）照实填写；其余顶层键逐行用 `null` 占位：`"risk_direction": null,`、`"comparison_status": null,`、`"human_gate_pending": null,`、`"upstream_pending": null,`、`"coverage": null,`、`"actions": null,`、`"debts": null,`、`"incomplete_statement": null,`、`"total": null,`、`"tier": null,`，最后一行固定为 `"complete_five_dimension_score": null`（不带逗号）；`dimensions` 下 `D1`…`D5` 各占一行，写成 `"D1": {"status": "deferred"},`（`D5` 行不带逗号）。CN 规则包不在骨架前通读，算 D3 时再用 `Grep`（单文件路径）按 rule id 查。
 2. 先据 O4 回执与任务透传项写方向、Gate 与覆盖（每个键一次 `Edit`）：`risk_direction`（单版本保持 `null`，不 Edit）、`comparison_status`、`human_gate_pending`（本次自判的 Gate）、`upstream_pending`（任务透传项原样照列，与自判 Gate 分列、不合并、不计分），以及 `coverage`（七项覆盖状态；任务和 O4 回执都没给的项写 `unknown` 并注明来源缺失）。D2 的方向封顶与 D5 的 Gate 扣分依赖这两项，所以排在五维之前。

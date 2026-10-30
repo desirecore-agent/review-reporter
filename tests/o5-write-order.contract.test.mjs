@@ -87,3 +87,11 @@ test('carrying the trailing comma into new_string breaks the scorecard', () => {
   assert.equal(parses(edit(skeleton, '"D1": {"status": "deferred"}', '"D1": {"status": "scored", "D": 90},')), false)
   assert.equal(parses(edit(skeleton, '"D5": {"status": "deferred"}', '"D5": {"status": "scored", "D": 90},')), false)
 })
+
+test('scoring skill forbids look-ahead and scopes direction caps to applicable comparisons', async () => {
+  const skill = await read('skills/review-scoring/SKILL.md')
+  assert.match(skill, /每次回复只想当前这一步：写方向、Gate、覆盖时不推演任何维度的扣分与封顶；算某一维时不推演其他维度/)
+  assert.match(skill, /单版本不触发 `CAP-D2-DIRECTION-UNDETERMINED` 与 `CAP-D2-WRONG-DIRECTION`/)
+  const rules = JSON.parse(await read('resources/scoring-rules-cn-v1.0.3.json'))
+  for (const cap of ['CAP-D2-DIRECTION-UNDETERMINED', 'CAP-D2-WRONG-DIRECTION']) assert.ok(cap in rules.dimensions.D2.caps, `${cap} 必须是评分规则里真实存在的封顶`)
+})
