@@ -1,7 +1,7 @@
 ---
 name: report-composition
 description: 在 O5 将合格 scorecard 渲染为范围明确的报告、待决回执，并在锚点可验证时自主导出修订 DOCX。
-version: 1.1.0
+version: 1.2.0
 type: procedural
 risk_level: low
 status: enabled
@@ -9,13 +9,15 @@ requires:
   tools: [Read, Grep, Write, Edit, FileDigest]
 metadata:
   author: DesireCore
-  version: 1.1.0
-  updated_at: '2026-09-29'
+  version: 1.2.0
+  updated_at: '2026-10-30'
 ---
 
 # O5 报告与交付
 
 完整回读 scorecard 后，只渲染其中已有的证据、评分状态和建议；不新增事实、不重做 O4。报告至少包含对象/范围、已证发现、refuted/unlocatable、七项覆盖状态、评分公式及完整性声明、风险方向、R7/R9 分列欠账、行动清单、Human Gate pending、适用边界和产物状态。
+
+`report.md` 按共享规则第三之二第 5 条逐节落盘：先 `Write` 骨架，列出全部章节标题，每节下一行写 `<!-- 待写：节名 -->`；一次回复写一节，用 `Edit` 把该节占位换成正文。`pending-receipt.json` 与 `export-attempts.json` 交付时一次写成。
 
 ## 路径
 
@@ -23,7 +25,7 @@ metadata:
 
 ## Human Gate
 
-先交付可读取的报告、待决清单和真实回执；业务 pending 不等于文件交付 pending。不得签署、接受条款或替真人批准。默认不逐个调用 `AskUserQuestion`；如评分技能已基于明确需要提问，仍将未回答项保持 pending。
+先交付可读取的报告、待决清单和真实回执；业务 pending 不等于文件交付 pending。不得签署、接受条款或替真人批准。默认不逐个调用 `AskUserQuestion`；如评分技能已基于明确需要提问，仍将未回答项保持 pending。任务点名要透传的 pending 只给了编号、没给内容时，照列编号并注明「任务未提供内容」，不推测其含义。
 
 ## 修订版 DOCX
 

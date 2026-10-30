@@ -1,16 +1,16 @@
 ---
 name: review-scoring
 description: 在独立的 O5 调用中消费合格 O4 回执，按有来源的固定公式评分并形成范围诚实的行动建议。
-version: 1.1.0
+version: 1.2.0
 type: procedural
 risk_level: low
 status: enabled
 requires:
-  tools: [Read, Write, MathCalc, AskUserQuestion]
+  tools: [Read, Write, Edit, MathCalc, AskUserQuestion]
 metadata:
   author: DesireCore
-  version: 1.1.0
-  updated_at: '2026-09-29'
+  version: 1.2.0
+  updated_at: '2026-10-30'
 ---
 
 # O5 评分
@@ -39,4 +39,14 @@ metadata:
 
 四类业务决定（付款回款、争议机制、责任分配、生效要件）命中后记 `pending`。pending 不阻止 scorecard/report 的文件交付，也不自动触发逐项提问。只有请求方明确需要立即决定，或缺失事实阻止识别对象时才用 `AskUserQuestion`；沉默、超时和模拟回答均不改变批准状态。
 
-先写并回读 scorecard，再交给 `report-composition`。scorecard 必须声明是否 `complete_five_dimension_score`，列出范围、O4 receipt、规则来源、逐维算式、方向、Human Gate 与欠账。
+## 落盘次序
+
+`scorecard.json` 按下列固定次序逐步写（即共享规则第三之二第 5 条所说「技能另有固定落盘次序的文件」），不要先在思考里算完五维再一次写整份：
+
+1. 读完 O4 回执与规则来源后先 `Write` 骨架：顶层身份、范围、O4 回执、规则来源（id、版本、绝对路径、摘要）照实填写；`dimensions` 下 `D1`…`D5` 各占一行，写成 `"D1": {"status": "deferred"},`（最后一维不带逗号）；`total`、`tier`、`complete_five_dimension_score` 先写 `null`。
+2. 一次回复只算一维：用 `MathCalc` 复算 S/P/C/D，再用 `Edit` 把该维那一行换成单行完整对象（S、P、C、D，命中的 rule code、次数、数值、证据，以及 not_covered/not_applicable 的依据）。`old_string` 取 `"Dn": {"status": "deferred"}`，在文件内唯一。
+3. 规则没写到的情形，按字面最接近的一条处理，在该维写一句 `interpretation_note` 说明所选读法后继续，不在思考里反复比较备选读法。
+4. 五维写完后再改写 total/tier（或不完整声明）、方向、Human Gate 与欠账，整份回读一次。scorecard 必须声明是否 `complete_five_dimension_score`，列出范围、O4 receipt、规则来源、逐维算式、方向、Human Gate 与欠账。
+5. 被续跑时先 `Read` 本次 scorecard，从仍为 `deferred` 的维度接着算。
+
+scorecard 写完并回读后，再交给 `report-composition`。
