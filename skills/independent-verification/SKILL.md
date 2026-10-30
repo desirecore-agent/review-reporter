@@ -1,7 +1,7 @@
 ---
 name: independent-verification
 description: O4 独立取证入口；在隔离调用中仅据原件验证净化事实候选，并按预定清单补漏。
-version: 1.0.0
+version: 1.0.1
 type: procedural
 risk_level: low
 status: enabled
@@ -9,8 +9,8 @@ requires:
   tools: [Read, Grep, Write]
 metadata:
   author: DesireCore
-  version: 1.0.0
-  updated_at: '2026-09-29'
+  version: 1.0.1
+  updated_at: '2026-10-30'
 ---
 
 # O4 独立取证
@@ -31,4 +31,4 @@ metadata:
 
 候选结果只有前三态。按预定清单主动补漏得到的事实不属于任何输入候选的状态，必须放进独立 `additional[]`，记录对应 check id 与证据；`additional: []` 与计数 0 合法，不为凑数编造。
 
-只向 `write_allowlist` 中唯一列出的 `<canonical_artifact_root>/independent-verification/<verification_id>.receipt.json` 写入 `independent-verification-receipt`。结构包含 `candidate_results[]`（每个非空输入候选 id 恰好一项，`status` 仅 `confirmed/refuted/unlocatable`）、独立 `additional[]`、`counts: {confirmed, refuted, unlocatable, additional}`、对象/范围、输入净化结论、清单逐项覆盖、R7/R9 各自状态和未覆盖原因。confirmed/refuted 必须含非空原文 quote 与来源定位；unlocatable 必须含非空检索文件/页段/关键词范围及原因。additional 的 id/check id/原文证据均非空，id 不重复且不得与候选重合。数组中的 null 或畸形项一律失败关闭。写后按同一路径完整回读；解析失败或 `valid:false` 时保留失败产物并停止，不得交给 O5。O4 不评分、不定严重度、不写建议、不问业务批准、不导出 DOCX。
+只向 `write_allowlist` 中唯一列出的 `<canonical_artifact_root>/independent-verification/<verification_id>.receipt.json` 写入 `independent-verification-receipt`。结构包含 `candidate_results[]`（每个非空输入候选 id 恰好一项，`status` 仅 `confirmed/refuted/unlocatable`）、独立 `additional[]`、`counts: {confirmed, refuted, unlocatable, additional}`、对象/范围、输入净化结论、清单逐项覆盖、R7/R9 各自状态和未覆盖原因。R9 以 Lead 转达的 O1 结论为准；任务未转达时按原件判断：正文条款自己列明附件清单（编号、名称、版本）即 `not_hit`，只有正文明确指向一份另附的权威附件清单而它未在 read_allowlist 内时才是 `hit`。不得因 read_allowlist 里没有单独的清单文件就写 `unknown`；R9 未命中时不生成待决项，附件正文未送达只记 R7。confirmed/refuted 必须含非空原文 quote 与来源定位；unlocatable 必须含非空检索文件/页段/关键词范围及原因。additional 的 id/check id/原文证据均非空，id 不重复且不得与候选重合。数组中的 null 或畸形项一律失败关闭。写后按同一路径完整回读；解析失败或 `valid:false` 时保留失败产物并停止，不得交给 O5。O4 不评分、不定严重度、不写建议、不问业务批准、不导出 DOCX。

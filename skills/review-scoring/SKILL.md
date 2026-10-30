@@ -33,7 +33,7 @@ metadata:
 
 ## 方向与范围
 
-`risk_direction` 只能是 `up/down/flat/undetermined`。单版本且未请求比较基线时，`comparison_status` 写 `not_applicable`，`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010），不写 flat、undetermined 或 not_applicable；已请求比较但范围或 digest 不足时 `comparison_status` 写 `applicable`、`risk_direction` 写 `undetermined`。比较范围不全或 digest 不可用时全局 `undetermined`；可以另述已证局部 up/down，但不能把全局写 flat。R7（附件正文未交）与 R9（权威清单不完整）分列。
+`risk_direction` 只能是 `up/down/flat/undetermined`。单版本且未请求比较基线时，`comparison_status` 写 `not_applicable`，`risk_direction` 保持骨架里的 `null` 不动（即省略方向，见团队规则 INV-010），不写 flat、undetermined 或 not_applicable；已请求比较但范围或 digest 不足时 `comparison_status` 写 `applicable`、`risk_direction` 写 `undetermined`。比较范围不全或 digest 不可用时全局 `undetermined`；可以另述已证局部 up/down，但不能把全局写 flat。R7（附件正文未交）与 R9（权威清单不完整）分列；R9 只按 O4 回执的状态照录，`not_hit` 时写未命中，不列欠账、不进 pending。
 
 ## Human Gate
 
