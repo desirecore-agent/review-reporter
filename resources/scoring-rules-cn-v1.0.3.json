@@ -1,0 +1,87 @@
+{
+  "rule_id": "scoring-rules-cn",
+  "version": "1.0.3",
+  "jurisdiction": "CN",
+  "formula": "D=min(all_caps,clamp(0,100,S-P));total=floor(sum(weight*D))",
+  "weights": {"D1": 0.20, "D2": 0.25, "D3": 0.20, "D4": 0.15, "D5": 0.20},
+  "missing_dimension_policy": "keep_denominator_and_mark_incomplete_do_not_total_or_tier",
+  "dimensions": {
+    "D1": {
+      "name": "条款抽取", "base": 100,
+      "substantive_deductions": {
+        "liability-cap": 25, "breach-remedy": 25, "dispute-resolution": 25,
+        "data-export": 15, "audit-right": 15, "force-majeure": 15,
+        "termination-convenience": 8, "grace-period": 8, "subcontracting": 8
+      },
+      "applicability": [
+        "持续服务合同的audit-right与data-export保持适用",
+        "一次性交易或NDA可将audit-right/data-export/subcontracting/termination-convenience标为not_applicable但必须给依据",
+        "不处理个人信息或客户数据时data-export可not_applicable",
+        "not_applicable不扣分且绝不重归一；无依据按not_covered"
+      ],
+      "penalties": {"DED-D1-NO-STATUS": 10, "DED-D1-REFUTED": 15, "DED-D1-UNLOCATABLE": 8, "DED-D1-NO-ANCHOR": 5, "DED-D1-FIELD-MISMATCH": 10},
+      "penalty_application": "each_occurrence",
+      "caps": {"CAP-D1-MISCLASSIFIED": 59, "CAP-D1-NOT-COVERED": 73}
+    },
+    "D2": {
+      "name": "风险评估", "base": 100,
+      "severity_deductions": {"critical": 25, "high": 15, "medium": 8, "low": 3},
+      "benchmarks": [
+        {"id":"liability-cap-below-market","metric":"责任上限（月费用）","bands":[{"when":">=12","severity":"none"},{"when":"6..11","severity":"high"},{"when":"<6","severity":"critical"}]},
+        {"id":"renewal-notice-window-too-short","metric":"续约通知（天）","bands":[{"when":">=90","severity":"none"},{"when":"60..89","severity":"medium"},{"when":"<60","severity":"high"}]},
+        {"id":"non-compete-term-excessive","metric":"竞业期限（年）","bands":[{"when":"1..2","severity":"none"},{"when":">2 and <5","severity":"high"},{"when":">=5","severity":"critical"}]},
+        {"id":"non-compete-without-compensation","metric":"竞业经济补偿未约定","severity":"critical"},
+        {"id":"data-export-window-short","metric":"数据导出窗口","bands":[{"when":">=90天且标准格式","severity":"none"},{"when":"30..89天或需主动请求或逾期即删","severity":"medium"}]},
+        {"id":"data-export-charged","metric":"数据导出附加收费","severity":"medium"},
+        {"id":"data-export-prohibited","metric":"数据导出完全禁止","severity":"critical"},
+        {"id":"availability-sla-downgrade","metric":"跨版本可用性下调","severity":"high"},
+        {"id":"service-credit-downgrade","metric":"跨版本服务信用补偿下调","severity":"medium"},
+        {"id":"confidentiality-term-perpetual","metric":"永久保密且无终止机制","severity":"high"},
+        {"id":"unilateral-price-adjustment","metric":"单方调价且沉默接受","severity":"medium"},
+        {"id":"no-minimum-commitment-with-exclusivity","metric":"无最低承诺但排他","severity":"medium"},
+        {"id":"amount-in-words-mismatch","metric":"金额大小写不一致","severity":"medium"}
+      ],
+      "penalties": {"DED-D2-MISS-CRITICAL": 20, "DED-D2-MISS-MINOR": 8, "DED-D2-FALSE-POSITIVE": 20, "DED-D2-NO-QUAD": 10, "DED-D2-SEVERITY-DRIFT": 10, "DED-D2-UNLOCATABLE": 8},
+      "penalty_application": {"default":"each_occurrence","DED-D2-MISS-CRITICAL":"each additional finding of critical or high severity","DED-D2-MISS-MINOR":"each additional finding of medium or low severity"},
+      "caps": {"CAP-D2-CRITICAL-MISS": 47, "CAP-D2-WRONG-DIRECTION": 47, "CAP-D2-DIRECTION-UNDETERMINED": 59}
+    },
+    "D3": {
+      "name": "合规稽核", "base": 100,
+      "substantive_deductions": {"governing-law-conflict": 25, "mandatory-rule-violation": 20, "missing-required-jurisdiction-mechanism": 20, "governing-law-absent": 30},
+      "penalties": {"DED-D3-NO-PACK-VERSION": 10, "DED-D3-NO-RULE-ID": 5, "DED-D3-LAYER-UNDECLARED": 5, "DED-D3-JURIS-UNDETERMINED": 30, "DED-D3-FROM-MEMORY": 15},
+      "penalty_application": {"DED-D3-NO-PACK-VERSION":"once","DED-D3-NO-RULE-ID":"each_occurrence","DED-D3-LAYER-UNDECLARED":"each_occurrence","DED-D3-JURIS-UNDETERMINED":"once","DED-D3-FROM-MEMORY":"each_occurrence"},
+      "caps": {"CAP-D3-PACK-MISMATCH": 0},
+      "policy": "任何合同均评估；仅使用本次allowlist内CN规则包，域外或规则包不匹配不得凭记忆评分"
+    },
+    "D4": {
+      "name": "义务与时序映射", "base": 100,
+      "required_fields": ["obligation_id", "责任主体", "触发条件或起算点", "期限", "后果", "证据锚点"],
+      "substantive_deductions": {"deadline-without-start": 10, "bilateral-made-unilateral": 10, "deadline-conflict": 15, "missing-effective-condition": 20},
+      "penalties": {"DED-D4-NOT-MAPPED": 10, "DED-D4-NO-SUBJECT": 8, "DED-D4-NO-ANCHOR": 5, "DED-D4-NO-RECOMPUTE": 5},
+      "penalty_application": "each_occurrence",
+      "caps": {"CAP-D4-PAYMENT-UNMAPPED": 59},
+      "cap_effects": {"CAP-D4-PAYMENT-UNMAPPED":"also_require_GATE-PAYMENT"}
+    },
+    "D5": {
+      "name": "建议生成", "base": 100,
+      "required_fields": ["finding_id", "祈使句动作", "priority", "具体修改落点", "签核归属"],
+      "penalties": {"DED-D5-NO-ACTION": 10, "DED-D5-NOT-ACTIONABLE": 10, "DED-D5-NO-PRIORITY": 5, "DED-D5-NO-TARGET": 8, "DED-D5-NO-ESCALATION": 20, "DED-D5-GATE-BYPASS": 25},
+      "penalty_application": "each_occurrence",
+      "caps": {"CAP-D5-UNGATED-RELEASE": 47}
+    }
+  },
+  "tiers": [
+    {"min":88,"max":100,"code":"TIER-1-LEGAL-REVIEW","action":"可放行至法务确认（需通过签核点）"},
+    {"min":74,"max":87,"code":"TIER-2-NEGOTIATE","action":"可谈判项，先出修改建议"},
+    {"min":60,"max":73,"code":"TIER-3-FIX-FIRST","action":"关键修改后继续"},
+    {"min":48,"max":59,"code":"TIER-4-HUMAN-LED","action":"必须人工主导，暂停推进"},
+    {"min":0,"max":47,"code":"TIER-5-REBUILD","action":"重建条款，重跑评审"}
+  ],
+  "human_gates": {
+    "GATE-PAYMENT":"付款触发与回款、金额、逾期、结算周期、付款条件、发票验收关系",
+    "GATE-DISPUTE":"管辖、仲裁或诉讼、仲裁机构、适用法冲突",
+    "GATE-LIABILITY":"责任上限、间接损失排除、不可抗力、赔偿例外",
+    "GATE-EXECUTION":"签章、依赖附件、法定形式、生效条件"
+  },
+  "calculation_discipline": ["每个S/P/C/D与总分均用MathCalc留痕", "多个封顶取最小", "总分向下取整", "not_applicable不重归一", "Human Gate不得由分数替代"]
+}
