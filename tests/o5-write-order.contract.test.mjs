@@ -34,7 +34,8 @@ test('scoring skill fixes the scorecard write order and the Edit shape', async (
   assert.match(skill, /`risk_direction`（单版本保持 `null`，不 Edit）/)
   // 续跑：单版本方向与不全时的总分档位的 null 都是终值，不能被当成未完成
   assert.match(skill, /`comparison_status` 为 `not_applicable` 时 `risk_direction` 的 `null` 是终值/)
-  assert.match(skill, /五维不全时 `total`、`tier` 保持 `null`/)
+  assert.match(skill, /有维度为 `not_covered` 时 `total`、`tier` 保持 `null`/)
+  assert.match(skill, /按 id 用 `Grep` 或按行 `Read` 取 scorecard 与 O4 回执的片段/)
   assert.match(skill, /`comparison_status` 即团队规则的 `comparison_applicability`/)
   const composition = await read('skills/report-composition/SKILL.md')
   assert.match(composition, /单版本写「比较不适用，不给方向」/)
@@ -99,7 +100,7 @@ test('scoring skill forbids look-ahead and scopes direction caps to applicable c
   const skill = await read('skills/review-scoring/SKILL.md')
   assert.match(skill, /每次回复只想当前这一步：写方向、Gate、覆盖时不推演任何维度的扣分与封顶；算某一维时不推演其他维度/)
   assert.match(skill, /单版本不触发 `CAP-D2-DIRECTION-UNDETERMINED` 与 `CAP-D2-WRONG-DIRECTION`/)
-  assert.match(skill, /骨架写入后不再整份 `Write`：漏写或想补的字段用一次 `Edit` 插入/)
+  assert.match(skill, /骨架写入后不再整份 `Write`：第 5 步之前发现骨架应有而漏写的字段，用一次 `Edit` 在某个已有的 `"key": null,` 行前插入（新行带尾逗号）/)
   const rules = JSON.parse(await read('resources/scoring-rules-cn-v1.0.3.json'))
   for (const cap of ['CAP-D2-DIRECTION-UNDETERMINED', 'CAP-D2-WRONG-DIRECTION']) assert.ok(cap in rules.dimensions.D2.caps, `${cap} 必须是评分规则里真实存在的封顶`)
 })
